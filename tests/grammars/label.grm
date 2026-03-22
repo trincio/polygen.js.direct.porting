@@ -1,0 +1,2 @@
+S ::= A.sg ;
+A ::= sg: one | pl: two | always ;

@@ -15,27 +15,54 @@
   "use strict";
 
   // ══════════════════════════════════════════════════════════════
-  // PRNG  (mulberry32 — deterministico, leggero)
+  // PRNG
   // ══════════════════════════════════════════════════════════════
 
-  var _rng = makePrng(Date.now() >>> 0);
-
-  function makePrng(seed) {
+  // mulberry32 — default: leggero, veloce
+  function makeMulberry32(seed) {
     var s = seed >>> 0;
-    return function () {
+    return function(n) {
       s += 0x6D2B79F5;
       var t = s;
       t = Math.imul(t ^ (t >>> 15), t | 1);
       t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      return Math.floor(((t ^ (t >>> 14)) >>> 0) / 4294967296 * n);
     };
   }
 
-  function rndInt(n) { return Math.floor(_rng() * n); }
+  // OCaml Random — Lagged Fibonacci Generator (55 × 30-bit state)
+  // Compatibile con Random.init / Random.int di OCaml 4.x.
+  // Usare con opts.prng:'ocaml' per confronto deterministico col binario OCaml originale.
+  function makeOcamlRandom(seed) {
+    var st = new Array(55);
+    var idx = 0;
+    st[0] = (seed >>> 0) & 0x3FFFFFFF;
+    for (var i = 1; i < 55; i++)
+      st[i] = (Math.imul(st[i - 1], 69069) + 1) & 0x3FFFFFFF;
+    function bits() {
+      idx = (idx + 1) % 55;
+      var v = (st[idx] ^ st[(idx + 24) % 55]) & 0x3FFFFFFF;
+      st[idx] = v;
+      return v;
+    }
+    for (var w = 0; w < 200; w++) bits();
+    return function(n) {
+      var r, v;
+      do { r = bits(); v = r % n; } while (r - v > 0x3FFFFFFF - n + 1);
+      return v;
+    };
+  }
 
-  function seedPrng(n) {
-    if (n == null) { _rng = makePrng(Date.now() >>> 0); }
-    else           { _rng = makePrng(n >>> 0); }
+  var _currentAlgo = 'mulberry32';
+  var _nextInt = makeMulberry32(Date.now() >>> 0);
+
+  function rndInt(n) { return _nextInt(n); }
+
+  function seedPrng(n, algo) {
+    algo = algo || _currentAlgo;
+    _currentAlgo = algo;
+    if (n == null) n = Date.now() >>> 0;
+    _nextInt = (algo === 'ocaml') ? makeOcamlRandom(n >>> 0) : makeMulberry32(n >>> 0);
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -940,13 +967,14 @@
     /**
      * Genera una stringa da una grammatica.
      * @param {string|null} source  - sorgente grammatica (ignorato se opts.grammar fornito)
-     * @param {object}      opts    - opzionale: { start, labels, seed, grammar }
+     * @param {object}      opts    - opzionale: { start, labels, seed, prng, grammar }
+     *                                prng: 'mulberry32' (default) | 'ocaml'
      */
     generate: function (source, opts) {
       opts = opts || {};
       var start = opts.start  || "S";
       var lbs   = LabelSet.ofLabels(opts.labels || []);
-      if (opts.seed != null) { seedPrng(opts.seed >>> 0); doShuffle = false; }
+      if (opts.seed != null) { seedPrng(opts.seed >>> 0, opts.prng || 'mulberry32'); doShuffle = false; }
       else                   { doShuffle = true; }
       var maxDepth = opts.maxDepth != null ? opts.maxDepth >>> 0 : DEFAULT_MAX_DEPTH;
       var decls1 = opts.grammar || preprocess(parse(source || ""));
@@ -1023,7 +1051,11 @@
       });
     },
 
-    /** Imposta il seed del PRNG manualmente. */
+    /**
+     * Imposta il seed del PRNG manualmente.
+     * @param {number} n     - seed (ometti per seed casuale)
+     * @param {string} algo  - 'mulberry32' (default) | 'ocaml'
+     */
     seed: seedPrng
   };
 

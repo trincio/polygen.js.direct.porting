@@ -1,0 +1,82 @@
+name: Generate OCaml golden outputs
+
+on:
+  workflow_dispatch:   # solo manuale
+  push:
+    paths:
+      - '.github/workflows/golden.yml'
+      - 'tests/grammars/**'
+
+jobs:
+  golden:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout alvisespano/Polygen
+        uses: actions/checkout@v4
+        with:
+          repository: alvisespano/Polygen
+          path: polygen-src
+
+      - name: Set up OCaml 4.14
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 4.14.x
+
+      - name: Install dependencies
+        run: opam install dune menhir --yes
+
+      - name: Build polygen binary
+        run: |
+          eval $(opam env)
+          cd polygen-src
+          dune build
+          echo "$(pwd)/_build/default/src/polygen.exe" >> $GITHUB_PATH
+
+      - name: Run grammars and collect golden outputs
+        run: |
+          eval $(opam env)
+          POLYGEN=$(pwd)/polygen-src/_build/default/src/polygen.exe
+
+          node - <<'JSEOF'
+          const { execFileSync } = require('child_process');
+          const fs   = require('fs');
+          const path = require('path');
+
+          const POLYGEN = process.env.POLYGEN_BIN;
+          const grmsDir = 'tests/grammars';
+          const cases   = JSON.parse(fs.readFileSync('tests/cases.json', 'utf8'));
+          const golden  = {};
+
+          for (const tc of cases) {
+            const grmPath = path.join(grmsDir, tc.grammar + '.grm');
+            const args = ['-seed', String(tc.seed)];
+            if (tc.start && tc.start !== 'S') args.push('-S', tc.start);
+            if (tc.labels) tc.labels.forEach(l => args.push('-l', l));
+            args.push(grmPath);
+            try {
+              const out = execFileSync(POLYGEN, args, { encoding: 'utf8' }).trimEnd();
+              golden[tc.id] = out;
+            } catch (e) {
+              golden[tc.id] = 'ERROR:' + e.message;
+            }
+          }
+
+          fs.writeFileSync('tests/golden.json', JSON.stringify(golden, null, 2) + '\n');
+          console.log('Written tests/golden.json with ' + Object.keys(golden).length + ' entries.');
+          JSEOF
+        env:
+          POLYGEN_BIN: ${{ github.workspace }}/polygen-src/_build/default/src/polygen.exe
+
+      - name: Commit golden outputs
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tests/golden.json
+          git diff --cached --quiet || git commit -m "chore: update OCaml golden outputs"
+          git push
