@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Polygen.js — Demo</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #faf8f3; color: #1a1a1a; }
+  h1   { font-size: 1.8rem; margin-bottom: 4px; }
+  label { display:block; font-weight:bold; margin-top:16px; }
+  textarea { width:100%; height:200px; font-family:monospace; font-size:0.9rem; border:1px solid #ccc; border-radius:4px; padding:8px; resize:vertical; }
+  input[type=text], input[type=number] { padding:6px 8px; border:1px solid #ccc; border-radius:4px; font:inherit; width:120px; }
+  button { margin-top:12px; padding:10px 24px; background:#7a3a1e; color:#fff; border:0; border-radius:999px; font:inherit; cursor:pointer; }
+  #output { margin-top:16px; padding:12px; background:#fff; border:1px solid #ccc; border-radius:4px; min-height:60px; font-size:1.05rem; white-space:pre-wrap; }
+  #error  { color:#c00; margin-top:8px; font-size:0.9rem; }
+</style>
+</head>
+<body>
+<h1>Polygen.js</h1>
+<p>Traduzione diretta dagli OCaml originali di Alvise Spano' (2002).</p>
+
+<label>Grammatica <small>(sintassi Polygen)</small></label>
+<textarea id="src">
+S ::= \ il Soggetto Verbo Complemento ;
+Soggetto ::= "gatto" | "cane" | "pappagallo" | "software" ;
+Verbo ::= "mangia" | "ignora" | "produce" | "distrugge" ;
+Complemento ::= il Oggetto | ogni Oggetto | qualsiasi Oggetto ;
+Oggetto ::= "bug" | "pizza" | "commit" | "feature" | "documentazione" ;
+</textarea>
+
+<label>Simbolo di partenza</label>
+<input type="text" id="start" value="S">
+
+<label>Seed (vuoto = casuale)</label>
+<input type="number" id="seed" placeholder="casuale">
+
+<label>Quante frasi</label>
+<input type="number" id="count" value="5" min="1" max="50">
+
+<br>
+<button onclick="runGen()">Genera</button>
+<div id="error"></div>
+<div id="output"></div>
+
+<script src="polygen.js"></script>
+<script>
+function runGen() {
+  var src    = document.getElementById("src").value;
+  var start  = document.getElementById("start").value.trim() || "S";
+  var seedV  = document.getElementById("seed").value.trim();
+  var count  = parseInt(document.getElementById("count").value) || 5;
+  var errEl  = document.getElementById("error");
+  var outEl  = document.getElementById("output");
+  errEl.textContent = "";
+  outEl.textContent = "";
+  try {
+    var opts = { start: start };
+    if (seedV !== "") opts.seed = parseInt(seedV);
+    var grammar = Polygen.compile(src);           // parse + preprocess una volta sola
+    var lines = [];
+    for (var i = 0; i < count; i++)
+      lines.push(Polygen.generate(null, { grammar: grammar, start: start, seed: seedV !== "" ? parseInt(seedV)+i : undefined }));
+    outEl.textContent = lines.join("\n");
+  } catch(e) {
+    errEl.textContent = "Errore: " + (e.message || e);
+  }
+}
+</script>
+</body>
+</html>

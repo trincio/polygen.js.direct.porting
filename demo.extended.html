@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>Polygen.js — Demo estesa</title>
+<style>
+:root {
+  --bg:#f5f0e8; --panel:#fffdf7; --ink:#1a1a1a; --acc:#7a3a1e;
+  --muted:#666; --border:#d9c9b0; --badge:#e8ddd0;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Georgia,"Times New Roman",serif;background:var(--bg);color:var(--ink)}
+main{max-width:960px;margin:0 auto;padding:32px 20px 60px}
+h1{margin:0 0 6px;font-size:2rem}
+.sub{color:var(--muted);margin:0 0 24px;font-size:.95rem}
+.row{display:grid;gap:16px;grid-template-columns:1fr 1fr}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px}
+label{display:block;font-weight:bold;font-size:.9rem;margin-bottom:8px}
+select,input[type=number]{width:100%;font:inherit;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#fff}
+textarea{width:100%;font-family:monospace;font-size:.82rem;border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical;background:#fff;min-height:220px}
+button{margin-top:12px;padding:10px 28px;background:var(--acc);color:#fff;border:0;border-radius:999px;font:inherit;font-size:.95rem;cursor:pointer}
+button:hover{background:#9a4a2e}
+#output{margin-top:14px;padding:14px;background:#fff;border:1px solid var(--border);border-radius:8px;min-height:80px;font-size:1rem;white-space:pre-wrap;line-height:1.7}
+#err{color:#c00;margin-top:8px;font-size:.88rem;min-height:1.2em}
+
+/* description panel */
+#desc{margin-top:20px;padding:18px 22px;background:var(--panel);border:1px solid var(--border);border-radius:14px;line-height:1.6;font-size:.92rem}
+#desc h2{margin:0 0 8px;font-size:1.05rem;color:var(--acc)}
+#desc p{margin:.5em 0}
+#desc .tags{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+.tag{background:var(--badge);border:1px solid var(--border);border-radius:999px;padding:3px 11px;font-size:.8rem;font-family:monospace}
+#desc table{border-collapse:collapse;width:100%;margin-top:10px;font-size:.87rem}
+#desc td,#desc th{padding:5px 10px;border:1px solid var(--border);text-align:left}
+#desc th{background:var(--badge);font-weight:bold}
+#desc code{background:var(--badge);padding:1px 5px;border-radius:4px;font-size:.88em}
+</style>
+</head>
+<body>
+<main>
+<h1>Polygen.js — Demo estesa</h1>
+<p class="sub">Grammatiche costruite per esercitare al massimo tutti i costrutti del linguaggio Polygen.</p>
+
+<div class="row">
+  <div class="card">
+    <label for="pick">Scegli grammatica</label>
+    <select id="pick" onchange="loadGrammar()"></select>
+  </div>
+  <div class="card">
+    <label for="seed">Seed PRNG <small>(vuoto = casuale)</small></label>
+    <input type="number" id="seed" placeholder="casuale">
+  </div>
+  <div class="card">
+    <label for="count">Frasi da generare</label>
+    <input type="number" id="count" min="1" max="30" value="6">
+  </div>
+  <div class="card" style="display:flex;flex-direction:column;justify-content:flex-end">
+    <button onclick="runGen()">Genera</button>
+  </div>
+</div>
+
+<div class="row" style="margin-top:16px">
+  <div class="card">
+    <label>Grammatica sorgente</label>
+    <textarea id="src" spellcheck="false"></textarea>
+  </div>
+  <div class="card">
+    <label>Output</label>
+    <div id="output"></div>
+    <div id="err"></div>
+  </div>
+</div>
+
+<div id="desc"></div>
+</main>
+
+<script src="polygen.js"></script>
+<script>
+// ── GRAMMATICHE ───────────────────────────────────────────────────────────────
+
+const grammars = [
+
+// ─────────────────────────────────────────────────────────────────────────────
+{
+name: "1. Accordo verbale (label)",
+src: `(* ROMANZO NOIR — accordo di tempo verbale tramite label *)
+
+S ::= \\ il Protagonista Verbo.(passato | presente | futuro) Oggetto ^ "." ;
+
+Protagonista ::= "detective" | "commissario" | "funzionario" | "algoritmo" | "sindaco" ;
+
+Verbo ::=
+  passato:  "scoprì"       | passato:  "nascose"       | passato:  "tradì"       | passato:  "dimenticò"     |
+  presente: "scopre"       | presente: "nasconde"      | presente: "tradisce"    | presente: "dimentica"     |
+  futuro:   "scoprirà"     | futuro:   "nasconderà"    | futuro:   "tradirà"     | futuro:   "dimenticherà"  ;
+
+Oggetto ::= "la verità" | "il colpevole" | "ogni indizio" | "l'alibi" | "il codice" | "la prova" ;`,
+
+desc: `<h2>🔍 Romanzo noir con accordo di tempo verbale</h2>
+<p>Genera frasi brevi in stile noir dove il tempo verbale (passato, presente, futuro) è scelto
+casualmente <em>e</em> il verbo si accorda automaticamente con quel tempo — senza if/else nel codice.</p>
+<p><strong>Come funziona:</strong> <code>Verbo.(passato | presente | futuro)</code> è un
+<strong>selettore multi-label</strong> che sceglie a caso uno dei tre tempi e lo attiva.
+Dentro <code>Verbo</code>, ogni alternativa è marcata con <code>passato:</code>,
+<code>presente:</code> o <code>futuro:</code> — solo quelle con la label attiva vengono considerate.</p>
+<div class="tags">
+  <span class="tag">\\ capitalize</span>
+  <span class="tag">^ concat</span>
+  <span class="tag">label: seq</span>
+  <span class="tag">NT.(l1|l2|l3) multi-selector</span>
+</div>
+<table>
+  <tr><th>Costrutto</th><th>Esempio</th><th>Effetto</th></tr>
+  <tr><td><code>\\ parola</code></td><td><code>\\ il</code></td><td>Capitalizza → "Il"</td></tr>
+  <tr><td><code>^ "."</code></td><td>fine frase</td><td>Attacca "." senza spazio</td></tr>
+  <tr><td><code>passato: "scoprì"</code></td><td>seq etichettata</td><td>Attivata solo se label "passato" è attiva</td></tr>
+  <tr><td><code>Verbo.(passato|presente|futuro)</code></td><td>selettore</td><td>Sceglie un label a caso, filtra Verbo</td></tr>
+</table>`
+},
+
+// ─────────────────────────────────────────────────────────────────────────────
+{
+name: "2. Binding (:=) — identità consistente",
+src: `(* CONSULENTE — := garantisce la stessa parola in più posizioni *)
+
+S ::= \\ il Ruolo "di" Azienda "è" Profilo ^ "." "Il" Ruolo "lo" "nega" ^ "." ;
+
+Ruolo    := "consulente" | "manager" | "coach" | "advisor" | "stakeholder" | "facilitatore" ;
+
+Azienda  ::= "TechCorp" | "StartupSrl" | "InnovaGroup" | "DigitalHub" | "SoluzioniSpa" ;
+
+Profilo  ::= "un genio incompreso"
+           | "una risorsa chiave"
+           | "un'entità corporativa"
+           | "un problema irrisolto"
+           | "una forza della natura" ;`,
+
+desc: `<h2>🧑‍💼 Binding di assegnazione <code>:=</code></h2>
+<p>Dimostra la differenza cruciale tra <code>::=</code> (definizione, ricalcolata ogni volta) e
+<code>:=</code> (assegnazione, calcolata <em>una sola volta</em> e memorizzata).</p>
+<p><code>Ruolo</code> appare <strong>due volte</strong> nella frase: prima come soggetto, poi nella chiusa
+ironica. Con <code>:=</code> entrambe le occorrenze producono la <em>stessa parola</em>.
+Con <code>::=</code> potrebbero essere diverse — provatelo cambiando il simbolo nel sorgente!</p>
+<div class="tags">
+  <span class="tag">:= assignment binding</span>
+  <span class="tag">::= definition binding</span>
+  <span class="tag">^ concat</span>
+  <span class="tag">\\ capitalize</span>
+</div>
+<table>
+  <tr><th>Costrutto</th><th>Semantica</th></tr>
+  <tr><td><code>Sym ::= prod</code></td><td>Rigenera un valore casuale ad ogni chiamata</td></tr>
+  <tr><td><code>Sym := prod</code></td><td>Genera <em>una volta</em>, poi restituisce sempre quel valore</td></tr>
+</table>`
+},
+
+// ─────────────────────────────────────────────────────────────────────────────
+{
+name: "3. Gruppi mobili {…} — permutazione",
+src: `(* SISTEMA INFORMATICO — aggettivi mobili che si scambiano posizione *)
+
+S ::= \\ il Tipo ^ "," {Agg1} {Agg2} ^ "," Stato ^ "." ;
+
+Tipo  ::= "sistema"    | "processo"  | "servizio"  | "daemon"
+        | "protocollo" | "cluster"   | "container" | "microservizio" ;
+
+Agg1  ::= "distribuito"  | "sincrono"  | "federato"
+        | "embedded"     | "asincrono" | "idempotente" ;
+
+Agg2  ::= "critico"      | "legacy"    | "enterprise"
+        | "cloud-native"  | "serverless"| "deprecato" ;
+
+Stato ::= "si aggiorna"           | "va offline"
+        | "scala automaticamente" | "si riavvia"
+        | "tace inspiegabilmente" | "alloca memoria" ;`,
+
+desc: `<h2>⚙️ Gruppi mobili <code>{…}</code> — permutazione di attributi</h2>
+<p>I due aggettivi sono racchiusi in <code>{…}</code>, che li rende <strong>mobili</strong>.
+Il preprocessore genera automaticamente tutte le permutazioni possibili degli elementi mobili
+all'interno della sequenza, e il generatore ne sceglie una a caso.</p>
+<p>Con <code>{Agg1} {Agg2}</code> le due occorrenze possono presentarsi in qualsiasi ordine:
+"distribuito critico" o "critico distribuito". Gli elementi fissi (Tipo, Stato, virgole) restano invariati.</p>
+<div class="tags">
+  <span class="tag">{…} gruppo mobile</span>
+  <span class="tag">permutazione automatica</span>
+  <span class="tag">^ concat</span>
+  <span class="tag">\\ capitalize</span>
+</div>
+<table>
+  <tr><th>Costrutto</th><th>Effetto</th></tr>
+  <tr><td><code>{A} {B}</code></td><td>Produce "A B" o "B A" con uguale probabilità</td></tr>
+  <tr><td><code>A {B} {C} D</code></td><td>A e D fissi; B e C si permutano in mezzo</td></tr>
+  <tr><td><code>{A} {B} {C}</code></td><td>6 ordini possibili (3!)</td></tr>
+</table>`
+},
+
+// ─────────────────────────────────────────────────────────────────────────────
+{
+name: "4. Pesi (+/−) e opzionale […]",
+src: `(* OROSCOPO SURREALE — pesi sulle alternative e gruppo opzionale *)
+
+S ::= Segno ^ ":" Previsione ^ "." ;
+
+Segno ::= "Ariete"     | "Toro"        | "Gemelli"    | "Cancro"
+        | "Leone"      | "Vergine"     | "Bilancia"   | "Scorpione"
+        | "Sagittario" | "Capricorno"  | "Acquario"   | "Pesci" ;
+
+Previsione ::= Tono [^ ";" Influsso] ;
+
+Tono ::= ++ "giornata favorevole"
+       |    "giornata incerta"
+       | -  "giornata nera" ;
+
+Influsso ::= Astro Aspetto ;
+
+Astro   ::= "Marte"    | "Venere"  | "Saturno"
+          | "Giove"    | "Mercurio"| "Urano" ;
+
+Aspetto ::= "in transito"      | "retrogrado"
+          | "all'opposizione"  | "in congiunzione"
+          | "in esaltazione"   | "in esilio" ;`,
+
+desc: `<h2>🔮 Oroscopo: pesi sulle alternative e gruppo opzionale</h2>
+<p>Combina due meccanismi distinti:</p>
+<p><strong>Pesi:</strong> <code>++</code> rende "giornata favorevole" più probabile (peso 3),
+senza modificatore è neutrale (peso 2), <code>-</code> rende "giornata nera" meno probabile (peso 1).
+I pesi sono normalizzati automaticamente da <code>expand()</code> nel parser.</p>
+<p><strong>Opzionale:</strong> <code>[^ ";" Influsso]</code> produce o niente oppure
+";<em>Astro Aspetto</em>" — il <code>[…]</code> è syntactic sugar per <code>(_ | contenuto)</code>.</p>
+<div class="tags">
+  <span class="tag">++ peso aumentato</span>
+  <span class="tag">- peso diminuito</span>
+  <span class="tag">[…] opzionale</span>
+  <span class="tag">^ concat (prima di ";")</span>
+</div>
+<table>
+  <tr><th>Modificatore</th><th>Peso relativo</th><th>Effetto</th></tr>
+  <tr><td><code>++</code></td><td>3x</td><td>Tre volte più probabile del neutro</td></tr>
+  <tr><td><em>nessuno</em></td><td>2x</td><td>Peso base normalizzato</td></tr>
+  <tr><td><code>-</code></td><td>1x</td><td>Metà del neutro</td></tr>
+  <tr><td><code>---</code></td><td>dipende</td><td>Sottraggono 1 per ogni segno</td></tr>
+</table>`
+},
+
+// ─────────────────────────────────────────────────────────────────────────────
+{
+name: "5. Lista con ripetizione (sub)+",
+src: `(* LISTA COSMICA — (sub)+ genera sequenze di lunghezza variabile *)
+
+S ::= \\ lista ^ ":" (Voce ^ ",")+ Voce ^ "." ;
+
+Voce ::= Quantità Prodotto ;
+
+Quantità ::= "un"               | "due"             | "mille"
+           | "un pizzico di"    | "tracce di"        | "zero" ;
+
+Prodotto ::= "stelle"           | "buchi neri"       | "paradossi"
+           | "neutrini"         | "materia oscura"   | "antimateria"
+           | "bug irrisolti"    | "promesse vuote"   | "bit perduti" ;`,
+
+desc: `<h2>📋 Ripetizione <code>(sub)+</code> — lista di lunghezza variabile</h2>
+<p><code>(Voce ^ ",")+</code> genera <em>una o più</em> voci separate da virgola.
+È syntactic sugar per una ricorsione: <code>__R ::= (Voce^",") (_ | __R); __R</code>.</p>
+<p>Poi l'ultima <code>Voce</code> (senza virgola) chiude la lista. Il meccanismo di shuffle
+selection garantisce che le liste brevi compaiano più spesso di quelle lunghissime.</p>
+<div class="tags">
+  <span class="tag">(sub)+ uno o più</span>
+  <span class="tag">^ concat (prima di ",")</span>
+  <span class="tag">\\ capitalize</span>
+  <span class="tag">ricorsione implicita</span>
+</div>
+<table>
+  <tr><th>Costrutto</th><th>Espanso dal parser in</th></tr>
+  <tr><td><code>(E)+</code></td><td><code>__R ::= E (_ | __R); __R</code></td></tr>
+  <tr><td><code>[E]</code></td><td><code>(_ | E)</code></td></tr>
+  <tr><td><code>(E)</code></td><td>gruppo normale, nessuna ripetizione</td></tr>
+</table>`
+},
+
+// ─────────────────────────────────────────────────────────────────────────────
+{
+name: "6. Unfold (>) — espansione inline",
+src: `(* BUG REPORT COSMICO — > espande inline tutte le alternative *)
+
+S ::= Titolo ^ "\\n" Corpo ^ "." ;
+
+Titolo ::= > Categoria ^ ":" Codice ;
+
+Categoria ::= "ERRORE"    | "AVVISO"    | "CRITICO"
+            | "FATALE"    | "DEBUG"     | "PANICO" ;
+
+Codice ::= "E" ^ Numero | "W" ^ Numero | "F" ^ Numero ;
+
+Numero ::= "001" | "404" | "500" | "666" | "999" | "42" ;
+
+Corpo ::= Sintomo ^ "." "Causa:" Causa ^ "." "Fix:" Fix ;
+
+Sintomo ::= "il sistema" Azione | "il database" Azione2 | "la rete" Azione3 ;
+Azione  ::= "esplode"    | "tace"      | "mente"     | "piange" ;
+Azione2 ::= "risponde"   | "corrode"   | "evapora"   | "si ribella" ;
+Azione3 ::= "disconnette"| "mente"     | "rallenta"  | "scompare" ;
+
+Causa ::= "nessuno sa"          | "il fato"
+        | "un gatto sulla tastiera" | "Giove retrogrado"
+        | "l'utente"            | "il compilatore" ;
+
+Fix   ::= "riavviare tutto"     | "ignorare"
+        | "pregare"             | "aggiungere un try-catch"
+        | "contattare il vendor"| "aspettare il prossimo sprint" ;`,
+
+desc: `<h2>🐛 Unfold <code>&gt;</code> — espansione inline</h2>
+<p><code>&gt; Categoria</code> non <em>riferisce</em> Categoria ma ne <strong>espande inline</strong>
+tutte le alternative. Invece di scegliere prima Categoria e poi aggiungere il Codice,
+il preprocessore crea una alternativa separata per ciascuna combinazione
+(Categoria_i × Codice_j).</p>
+<p>L'effetto pratico: le 6 categorie × 3 prefissi × 6 numeri danno <strong>108 titoli distinti</strong>,
+tutti ugualmente disponibili come alternative a livello radice.</p>
+<div class="tags">
+  <span class="tag">&gt; NT unfold</span>
+  <span class="tag">^ concat</span>
+  <span class="tag">\\n newline in stringa</span>
+  <span class="tag">sequenze multi-frase</span>
+</div>
+<table>
+  <tr><th>Costrutto</th><th>Semantica</th></tr>
+  <tr><td><code>NT</code> (riferimento)</td><td>Genera NT indipendentemente: scelta singola</td></tr>
+  <tr><td><code>&gt; NT</code> (unfold)</td><td>Espande tutte le alternative di NT <em>in loco</em></td></tr>
+  <tr><td><code>&lt; NT</code> (lock)</td><td>Impedisce ulteriori unfold su NT (blocca)</td></tr>
+  <tr><td><code>&gt;&gt; … &lt;&lt;</code> (deep unfold)</td><td>Unfold ricorsivo di tutti gli NT interni</td></tr>
+</table>`
+},
+
+// ─────────────────────────────────────────────────────────────────────────────
+{
+name: "7. Dichiarazioni locali e deep unfold",
+src: `(* MANIFESTO DADAISTA — dichiarazioni locali dentro ( ) e >> deep unfold << *)
+
+S ::= Frase ^ "!" ;
+
+Frase ::=
+  (
+    Adj ::= "meta" | "ultra" | "anti" | "pseudo" | "neo" | "post" | "proto" ;
+    Sost ::= "realtà" | "concetto" | "sistema" | "oggetto" | "paradigma" | "codice" ;
+    \\ il Adj Sost "è" Adj Sost
+  )
+  |
+  >>
+    Azione ::= "distrugge" | "ignora" | "genera" | "consuma" ;
+    Idea ::= "il senso" | "ogni logica" | "la forma" | "il contesto" ;
+    \\ il Sost2 Azione Idea
+  <<
+  |
+  \\ Sost2 ^ "-" ^ Sost2 ^ "-" ^ Sost2
+  ;
+
+Sost2 ::= "meta" | "neo" | "anti" | "ultra" | "pseudo" ;`,
+
+desc: `<h2>🎭 Dichiarazioni locali e deep unfold <code>&gt;&gt;…&lt;&lt;</code></h2>
+<p>Tre costrutti avanzati in una sola grammatica:</p>
+<p><strong>Dichiarazioni locali:</strong> dentro <code>(Adj ::= …; Sost ::= …; espressione)</code>
+le regole <code>Adj</code> e <code>Sost</code> sono visibili solo all'interno del gruppo —
+non inquinano il namespace globale.</p>
+<p><strong>Deep unfold <code>&gt;&gt;…&lt;&lt;</code>:</strong> tutto ciò che sta dentro viene
+espanso ricorsivamente. Ogni riferimento a NT diventa un <code>&gt; NT</code>.
+Il risultato è un prodotto cartesiano pre-calcolato di tutte le combinazioni.</p>
+<p><strong>Concat <code>^</code> catena:</strong> <code>A ^ "-" ^ B ^ "-" ^ C</code> produce
+"A-B-C" senza spazi attorno ai trattini.</p>
+<div class="tags">
+  <span class="tag">( Sym ::= …; expr ) dichiaraz. locali</span>
+  <span class="tag">&gt;&gt; … &lt;&lt; deep unfold</span>
+  <span class="tag">^ catena di concat</span>
+  <span class="tag">\\ capitalize</span>
+</div>
+<table>
+  <tr><th>Costrutto</th><th>Scope</th></tr>
+  <tr><td><code>Sym ::= prod</code> globale</td><td>Visibile ovunque nella grammatica</td></tr>
+  <tr><td><code>(Sym ::= prod; expr)</code></td><td>Sym visibile solo dentro le <code>(…)</code></td></tr>
+  <tr><td><code>&gt;&gt; Sym ::= p; expr &lt;&lt;</code></td><td>Deep unfold: ogni NT in expr viene espanso</td></tr>
+</table>`
+},
+
+// ─────────────────────────────────────────────────────────────────────────────
+{
+name: "8. Tutto insieme — poesia generativa",
+src: `(* POESIA GENERATIVA — usa quasi tutti i costrutti di Polygen *)
+
+(* S usa label per scegliere metro, := per soggetto coerente, {} mobile *)
+S ::= Strofa.(breve | lungo) ;
+
+Strofa ::=
+  breve: \\ il Sogg {Epiteto} Verbo ^ "." |
+  lungo: \\ il Sogg ^ "," {Epiteto} {Qualifica} ^ "," Verbo Avv ^ "," "e" Sogg "tace" ^ "." ;
+
+(* Sogg con := appare due volte nella strofa lunga e dà la stessa parola *)
+Sogg      := "vento"    | "tempo"     | "codice"  | "silenzio"
+           | "algoritmo"| "sogno"     | "dato"    | "errore" ;
+
+Epiteto   ::= "antico"   | "caotico"  | "immobile" | "cieco"
+            | "sordo"    | "vuoto"    | "eterno"   | "digitale" ;
+
+Qualifica ::= + "onnipotente" | "misterioso" | - "ordinario" ;
+
+Verbo     ::= "sussurra"  | "svanisce"  | "persiste" | "mente"
+            | "calcola"   | "aspetta"   | "brucia"   | "tace" ;
+
+Avv       ::= "invano"    | "ancora"    | "sempre"   | "piano"
+            | "in silenzio" | "a lungo" | "nell'ombra" ;`,
+
+desc: `<h2>🌹 Poesia generativa — tutti i costrutti</h2>
+<p>La grammatica finale mette insieme la maggior parte dei costrutti di Polygen in un unico sistema coerente:</p>
+<ul style="margin:.5em 0 .5em 1.2em;padding:0">
+  <li><strong>Label</strong> (<code>breve:</code>/<code>lungo:</code>) selezionano il metro della strofa</li>
+  <li><strong>Assignment</strong> (<code>:=</code>) su <code>Sogg</code>: nelle strofe lunghe "il X … e X" usano la stessa parola</li>
+  <li><strong>Gruppi mobili</strong> (<code>{Epiteto} {Qualifica}</code>): gli attributi si permutano</li>
+  <li><strong>Pesi</strong> (<code>+</code>/<code>-</code>) su Qualifica: "onnipotente" più frequente, "ordinario" raro</li>
+  <li><strong>Capitalize e concat</strong> per punteggiatura senza spazi</li>
+</ul>
+<div class="tags">
+  <span class="tag">label breve/lungo</span>
+  <span class="tag">:= assignment</span>
+  <span class="tag">{} mobile</span>
+  <span class="tag">+/- pesi</span>
+  <span class="tag">\\ ^ capitalize+concat</span>
+  <span class="tag">NT.(l1|l2) selettore</span>
+</div>`
+}
+
+]; // fine array grammars
+
+// ── LOGICA UI ─────────────────────────────────────────────────────────────────
+
+const pick  = document.getElementById("pick");
+const srcEl = document.getElementById("src");
+const descEl= document.getElementById("desc");
+const outEl = document.getElementById("output");
+const errEl = document.getElementById("err");
+
+// popola picklist
+grammars.forEach(function(g, i){
+  const opt = document.createElement("option");
+  opt.value = i; opt.textContent = g.name;
+  pick.appendChild(opt);
+});
+
+function loadGrammar(){
+  const g = grammars[pick.value];
+  srcEl.value = g.src;
+  descEl.innerHTML = g.desc;
+  outEl.textContent = "";
+  errEl.textContent = "";
+}
+
+function runGen(){
+  errEl.textContent = "";
+  outEl.textContent = "";
+  const src   = srcEl.value;
+  const seedV = document.getElementById("seed").value.trim();
+  const count = Math.max(1, parseInt(document.getElementById("count").value) || 6);
+  try {
+    const grammar = Polygen.compile(src);
+    const lines = [];
+    for(let i = 0; i < count; i++){
+      const opts = { grammar, start: "S" };
+      if(seedV !== "") { opts.seed = parseInt(seedV) + i; }
+      lines.push(Polygen.generate(null, opts));
+    }
+    outEl.textContent = lines.join("\n");
+  } catch(e) {
+    errEl.textContent = "Errore: " + (e.message || e);
+  }
+}
+
+// carica la prima grammatica all'avvio
+loadGrammar();
+</script>
+</body>
+</html>

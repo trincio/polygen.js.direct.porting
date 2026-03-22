@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+._*
+
+# Internal session notes
+CLAUDE.md
+
+# Claude Code local settings
+.claude/
+
+# Screenshots
+*.png
+*.jpg
