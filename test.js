@@ -117,6 +117,14 @@ run("weighted order preserved with ocaml prng",
   'S ::= >(due | tre | quattro | --dieci) ;',
   { seed: 1, prng: "ocaml" }, "quattro");
 
+run("weighted plus ocaml explicit",
+  'S ::= ++ a | b ;',
+  { seed: 42, prng: "ocaml" }, "a");
+
+run("weighted minus ocaml explicit",
+  'S ::= a | -- b ;',
+  { seed: 42, prng: "ocaml" }, "a");
+
 // ─────────────────────────────────────────────────────────────────────
 // NON-TERMINALI E RICORSIONE
 // ─────────────────────────────────────────────────────────────────────
@@ -178,6 +186,10 @@ run("assignment memoization",
     return (parts[0] === parts[1] && parts[1] === parts[2]) ? r1 : "MEMO_FAIL";
   })());
 
+run("assignment memoization ocaml explicit",
+  'S ::= X X X ; X := a | b | c ;',
+  { seed: 42, prng: "ocaml" }, "a a a");
+
 // ─────────────────────────────────────────────────────────────────────
 // UNFOLD >
 // ─────────────────────────────────────────────────────────────────────
@@ -197,6 +209,10 @@ run("mobile group produces permutation",
 run("mobile permute with weighted alternatives (ocaml)",
   'S ::= {++ (due | tre | quattro)} {-- (uno | due)} ;',
   { seed: 42, prng: "ocaml" }, "due due");
+
+run("mobile permute with fixed atoms (ocaml)",
+  'S ::= start {alpha} mid {beta} end ;',
+  { seed: 42, prng: "ocaml" }, "start alpha mid beta end");
 
 // ─────────────────────────────────────────────────────────────────────
 // DICHIARAZIONI LOCALI
@@ -305,6 +321,10 @@ run("deep unfold seed42",
   'S ::= >> A | B << ; A ::= x | y ; B ::= p | q ;',
   { seed: 42 }, "q");
 
+run("deep unfold seed42 ocaml explicit",
+  'S ::= >> A | B << ; A ::= x | y ; B ::= p | q ;',
+  { seed: 42, prng: "ocaml" }, "q");
+
 run("deep unfold seed1",
   'S ::= >> A | B << ; A ::= x | y ; B ::= p | q ;',
   { seed: 1 }, "p");
@@ -353,6 +373,10 @@ run("lock plain seed1",
 run("lock inside deep unfold seed42",
   'S ::= >> A | < B << ; A ::= x | y ; B ::= p | q ;',
   { seed: 42 }, "p");
+
+run("lock inside deep unfold seed42 ocaml explicit",
+  'S ::= >> A | < B << ; A ::= x | y ; B ::= p | q ;',
+  { seed: 42, prng: "ocaml" }, "x");
 
 run("lock inside deep unfold seed1",
   'S ::= >> A | < B << ; A ::= x | y ; B ::= p | q ;',
