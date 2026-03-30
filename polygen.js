@@ -30,22 +30,85 @@
     };
   }
 
-  // OCaml Random — Lagged Fibonacci Generator (55 × 30-bit state)
-  // Compatibile con Random.init / Random.int di OCaml 4.x.
+  // OCaml Random — exact port of OCaml 4.x stdlib Random module.
+  // Lagged Fibonacci F(55,24,+) with bit-mixing, MD5-based seeding.
   // Usare con opts.prng:'ocaml' per confronto deterministico col binario OCaml originale.
+
+  // MD5 (RFC 1321) — necessario per il seeding di OCaml Random (Digest.string = MD5)
+  var _md5K = [
+    0xd76aa478,0xe8c7b756,0x242070db,0xc1bdceee,0xf57c0faf,0x4787c62a,0xa8304613,0xfd469501,
+    0x698098d8,0x8b44f7af,0xffff5bb1,0x895cd7be,0x6b901122,0xfd987193,0xa679438e,0x49b40821,
+    0xf61e2562,0xc040b340,0x265e5a51,0xe9b6c7aa,0xd62f105d,0x02441453,0xd8a1e681,0xe7d3fbc8,
+    0x21e1cde6,0xc33707d6,0xf4d50d87,0x455a14ed,0xa9e3e905,0xfcefa3f8,0x676f02d9,0x8d2a4c8a,
+    0xfffa3942,0x8771f681,0x6d9d6122,0xfde5380c,0xa4beea44,0x4bdecfa9,0xf6bb4b60,0xbebfbc70,
+    0x289b7ec6,0xeaa127fa,0xd4ef3085,0x04881d05,0xd9d4d039,0xe6db99e5,0x1fa27cf8,0xc4ac5665,
+    0xf4292244,0x432aff97,0xab9423a7,0xfc93a039,0x655b59c3,0x8f0ccc92,0xffeff47d,0x85845dd1,
+    0x6fa87e4f,0xfe2ce6e0,0xa3014314,0x4e0811a1,0xf7537e82,0xbd3af235,0x2ad7d2bb,0xeb86d391
+  ];
+  var _md5S = [
+    7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,
+    5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,
+    4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,
+    6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21
+  ];
+  function md5raw(str) {
+    var n = str.length;
+    var blocks = (((n + 8) >>> 6) + 1) << 4;
+    var msg = [];
+    for (var i = 0; i < blocks; i++) msg[i] = 0;
+    for (var i = 0; i < n; i++)
+      msg[i >> 2] |= (str.charCodeAt(i) & 0xFF) << ((i & 3) << 3);
+    msg[n >> 2] |= 0x80 << ((n & 3) << 3);
+    msg[blocks - 2] = n * 8;
+    var a0 = 0x67452301, b0 = 0xEFCDAB89, c0 = 0x98BADCFE, d0 = 0x10325476;
+    for (var off = 0; off < blocks; off += 16) {
+      var a = a0, b = b0, c = c0, d = d0;
+      for (var i = 0; i < 64; i++) {
+        var f, g;
+        if (i < 16)      { f = (b & c) | ((~b) & d); g = i; }
+        else if (i < 32) { f = (d & b) | ((~d) & c); g = (5 * i + 1) % 16; }
+        else if (i < 48) { f = b ^ c ^ d;             g = (3 * i + 5) % 16; }
+        else             { f = c ^ (b | (~d));         g = (7 * i) % 16; }
+        var tmp = d; d = c; c = b;
+        var x = (a + f + _md5K[i] + msg[off + g]) | 0;
+        b = (b + (((x << _md5S[i]) | (x >>> (32 - _md5S[i]))) >>> 0)) | 0;
+        a = tmp;
+      }
+      a0 = (a0 + a) | 0; b0 = (b0 + b) | 0; c0 = (c0 + c) | 0; d0 = (d0 + d) | 0;
+    }
+    function w2s(w) {
+      return String.fromCharCode(w & 0xFF, (w >>> 8) & 0xFF, (w >>> 16) & 0xFF, (w >>> 24) & 0xFF);
+    }
+    return w2s(a0) + w2s(b0) + w2s(c0) + w2s(d0);
+  }
+
   function makeOcamlRandom(seed) {
     var st = new Array(55);
     var idx = 0;
-    st[0] = (seed >>> 0) & 0x3FFFFFFF;
-    for (var i = 1; i < 55; i++)
-      st[i] = (Math.imul(st[i - 1], 69069) + 1) & 0x3FFFFFFF;
+    // full_init: inizializza con MD5 come OCaml stdlib Random.init
+    for (var i = 0; i <= 54; i++) st[i] = i;
+    var accu = "x";
+    var seedStr = String(seed >>> 0);
+    for (var i = 0; i <= 54 + 55; i++) {
+      var j = i % 55;
+      accu = md5raw(accu + seedStr);
+      var extract = (accu.charCodeAt(0))
+                  + (accu.charCodeAt(1) * 256)
+                  + (accu.charCodeAt(2) * 65536)
+                  + (accu.charCodeAt(3) * 16777216);
+      st[j] = (st[j] ^ (extract | 0)) & 0x3FFFFFFF;
+    }
+    idx = 0;
+    // bits: Lagged Fibonacci F(55,24,+) con bit-mixing sui 5 bit alti
     function bits() {
       idx = (idx + 1) % 55;
-      var v = (st[idx] ^ st[(idx + 24) % 55]) & 0x3FFFFFFF;
-      st[idx] = v;
-      return v;
+      var curval = st[idx];
+      var newval = (st[(idx + 24) % 55] + (curval ^ ((curval >>> 25) & 0x1F))) | 0;
+      var newval30 = newval & 0x3FFFFFFF;
+      st[idx] = newval30;
+      return newval30;
     }
-    for (var w = 0; w < 200; w++) bits();
+    // intaux: rejection sampling per evitare modulo bias
     return function(n) {
       var r, v;
       do { r = bits(); v = r % n; } while (r - v > 0x3FFFFFFF - n + 1);
@@ -510,15 +573,19 @@
   }
 
   // permute: tutte le permutazioni di una lista
+  // Ordine identico all'implementazione OCaml (pre.ml: expl/perm)
   function permute(l) {
     if (l.length === 0) return [];
     if (l.length === 1) return [[l[0]]];
-    var out = [];
-    for (var i = 0; i < l.length; i++) {
-      var x = l[i], rest = l.slice(0,i).concat(l.slice(i+1));
-      permute(rest).forEach(function(p){ out.push([x].concat(p)); });
+    function perm(h, x, t) {
+      return permute(h.concat(t)).map(function(p){ return [x].concat(p); });
     }
-    return out;
+    function expl(lst, h) {
+      if (lst.length === 0) return [];
+      var x = lst[0], xs = lst.slice(1);
+      return expl(xs, [x].concat(h)).concat(perm(h, x, xs));
+    }
+    return expl(l, []);
   }
 
   // Former/Latter: tag per atomi mobili vs fissi
