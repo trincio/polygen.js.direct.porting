@@ -93,6 +93,10 @@ run("multi-word sequence",
   'S ::= the quick brown fox ;',
   {}, "the quick brown fox");
 
+run("trims trailing terminal newline",
+  'S ::= a ^ "\n" ^ b ^ "\n" ;',
+  {}, "a\nb");
+
 // ─────────────────────────────────────────────────────────────────────
 // ALTERNATIVE E PESI
 // ─────────────────────────────────────────────────────────────────────
@@ -108,6 +112,10 @@ run("weighted plus",
 run("weighted minus",
   'S ::= a | -- b ;',
   { seed: 42 }, Polygen.generate('S ::= a | -- b ;', { seed: 42 }));
+
+run("weighted order preserved with ocaml prng",
+  'S ::= >(due | tre | quattro | --dieci) ;',
+  { seed: 1, prng: "ocaml" }, "quattro");
 
 // ─────────────────────────────────────────────────────────────────────
 // NON-TERMINALI E RICORSIONE
