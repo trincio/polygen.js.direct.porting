@@ -27,15 +27,16 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 4.11.x
+          opam-disable-sandboxing: true
 
       - name: Install dependencies
         run: opam install dune menhir --yes
 
-      - name: Build polygen binary
+      - name: Build polygen binary (solo target nativo, senza js_of_ocaml)
         run: |
           eval $(opam env)
           cd polygen-src
-          dune build
+          dune build src/polygen.exe
           echo "$(pwd)/_build/default/src/polygen.exe" >> $GITHUB_PATH
 
       - name: Run grammars and collect golden outputs
