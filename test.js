@@ -495,6 +495,16 @@ asyncTest("generateAsync", (function() {
     });
 })());
 
+// generateAsync deve propagare il PRNG scelto come generate()
+asyncTest("generateAsync propagates prng", (function() {
+  var src = 'S ::= a | b | c | d | e ;';
+  var expected = Polygen.generate(src, { seed: 42, prng: "ocaml" });
+  return Polygen.generateAsync(src, { seed: 42, prng: "ocaml" })
+    .then(function(result) {
+      return result === expected;
+    });
+})());
+
 // compileAsync senza loader su grammatica senza import → ok
 asyncTest("compileAsync no imports", (function() {
   return Polygen.compileAsync('S ::= pure ;')

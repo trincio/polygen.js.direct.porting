@@ -1112,6 +1112,7 @@
           start:    opts.start,
           labels:   opts.labels,
           seed:     opts.seed,
+          prng:     opts.prng,
           maxDepth: opts.maxDepth
         });
       });
