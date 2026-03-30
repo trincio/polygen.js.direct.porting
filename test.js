@@ -309,6 +309,29 @@ runThrows("import without loader",
     }
   }
 
+  function checkExact(name, source, opts, expectedErrors, expectedWarnings) {
+    var report;
+    try { report = Polygen.check(source, opts || {}); }
+    catch(e) {
+      failed++;
+      console.log("  FAIL  checkExact:" + name + " → threw unexpectedly: " + e.message);
+      return;
+    }
+    var gotErrors = report.errors.map(function(e){ return e.message; });
+    var gotWarnings = report.warnings.map(function(w){ return w.message; });
+    var eOk = JSON.stringify(gotErrors) === JSON.stringify(expectedErrors || []);
+    var wOk = JSON.stringify(gotWarnings) === JSON.stringify(expectedWarnings || []);
+    if (eOk && wOk) {
+      passed++;
+      if (VERBOSE) console.log("  PASS  checkExact:" + name);
+    } else {
+      failed++;
+      console.log("  FAIL  checkExact:" + name);
+      if (!eOk) console.log("        expected errors: " + JSON.stringify(expectedErrors || []) + " got: " + JSON.stringify(gotErrors));
+      if (!wOk) console.log("        expected warnings: " + JSON.stringify(expectedWarnings || []) + " got: " + JSON.stringify(gotWarnings));
+    }
+  }
+
   check("valid grammar",              'S ::= hello ;',                 {},         0, 0);
   check("undefined NT",               'S ::= Undefined ;',             {},         1, 0);
   check("missing start symbol",       'A ::= foo ;',                   {start:"S"},1, 0);
@@ -318,21 +341,67 @@ runThrows("import without loader",
   check("valid unfold",               'S ::= > A ; A ::= x | y ;',    {},         0, 0);
   check("validate:true ok",           'S ::= hello ;',                 {},         0, 0);
 
+  checkExact("undefined NT message",
+    'S ::= Undefined ;',
+    {},
+    ["simbolo non definito: 'Undefined'"],
+    []);
+
+  checkExact("missing start symbol message",
+    'A ::= foo ;',
+    {start:"S"},
+    ["simbolo di partenza 'S' non definito"],
+    []);
+
+  checkExact("cyclic unfold messages",
+    'S ::= > A ; A ::= > S ;',
+    {},
+    ["unfold ciclico del simbolo 'S'", "unfold ciclico del simbolo 'A'"],
+    []);
+
+  checkExact("useless unfold warning message",
+    'S ::= > (only) ;',
+    {},
+    [],
+    ["unfold inutile (produzione con una sola alternativa)"]);
+
+  checkExact("useless permutation warning message",
+    'S ::= {a} b ;',
+    {},
+    [],
+    ["permutazione inutile (un solo elemento mobile)"]);
+
+  checkExact("unfold assign warning message",
+    'S ::= > A ; A := x | y ;',
+    {},
+    [],
+    ["unfold di simbolo ':=' ('A')"]);
+
   // compile con validate:true lancia su errore
   (function(){
-    var threw = false;
+    var msg = null;
     try { Polygen.compile('S ::= Undefined ;', { validate: true }); }
-    catch(e) { threw = true; }
-    if (threw) { passed++; if (VERBOSE) console.log("  PASS  check:compile validate:true throws on error"); }
-    else        { failed++; console.log("  FAIL  check:compile validate:true should have thrown"); }
+    catch(e) { msg = e.message; }
+    if (msg === "validazione fallita:\n  errore: simbolo non definito: 'Undefined'") {
+      passed++; if (VERBOSE) console.log("  PASS  check:compile validate:true throws on error");
+    } else if (msg === null) {
+      failed++; console.log("  FAIL  check:compile validate:true should have thrown");
+    } else {
+      failed++; console.log("  FAIL  check:compile validate:true wrong message");
+      console.log("        got: " + JSON.stringify(msg));
+    }
   })();
 
   // compile con validate:true ok restituisce grammar con .warnings
   (function(){
     var g = Polygen.compile('S ::= > (only) ;', { validate: true });
-    var hasWarnings = g && Array.isArray(g.warnings) && g.warnings.length === 1;
-    if (hasWarnings) { passed++; if (VERBOSE) console.log("  PASS  check:compile validate:true warnings on grammar"); }
-    else              { failed++; console.log("  FAIL  check:compile validate:true should have warnings on grammar"); }
+    var warnings = g && Array.isArray(g.warnings) ? g.warnings.map(function(w){ return w.message; }) : [];
+    if (JSON.stringify(warnings) === JSON.stringify(["unfold inutile (produzione con una sola alternativa)"])) {
+      passed++; if (VERBOSE) console.log("  PASS  check:compile validate:true warnings on grammar");
+    } else {
+      failed++; console.log("  FAIL  check:compile validate:true should have warnings on grammar");
+      console.log("        got: " + JSON.stringify(warnings));
+    }
   })();
 })();
 
