@@ -1,0 +1,3 @@
+S ::= A ^ B ;
+A ::= pre | ante ;
+B ::= fix | post ;

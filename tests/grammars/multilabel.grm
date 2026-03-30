@@ -1,0 +1,2 @@
+S ::= A.(sg|pl) ;
+A ::= sg: one | pl: two | ne: three ;

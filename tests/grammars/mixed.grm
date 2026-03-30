@@ -1,0 +1,5 @@
+S ::= \\ A ^ B {C} {D} ;
+A ::= hello | world ;
+B ::= foo | bar ;
+C ::= x | y ;
+D ::= p | q ;

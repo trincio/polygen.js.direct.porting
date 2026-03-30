@@ -1,0 +1,3 @@
+S ::= \\ A B ;
+A ::= hello | world ;
+B ::= foo | bar ;
