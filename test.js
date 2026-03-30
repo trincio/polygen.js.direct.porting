@@ -93,9 +93,9 @@ run("multi-word sequence",
   'S ::= the quick brown fox ;',
   {}, "the quick brown fox");
 
-run("trims trailing terminal newline",
+run("preserves trailing terminal newline",
   'S ::= a ^ "\n" ^ b ^ "\n" ;',
-  {}, "a\nb");
+  {}, "a\nb\n");
 
 // ─────────────────────────────────────────────────────────────────────
 // ALTERNATIVE E PESI

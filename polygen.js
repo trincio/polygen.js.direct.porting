@@ -827,7 +827,7 @@
 
     var env   = declare(Env.empty, lbs, decls1);
     var terms = genAtom(env, lbs, {type:"NonTerm", path:mkPath([], startSym)});
-    return post(terms).trimEnd();
+    return post(terms);
   }
 
   // ══════════════════════════════════════════════════════════════

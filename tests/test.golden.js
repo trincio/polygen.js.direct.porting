@@ -37,6 +37,7 @@ for (var i = 0; i < cases.length; i++) {
       labels: tc.labels || [],
       prng:   'ocaml'
     });
+    got = got.trimEnd();
   } catch (e) {
     got = 'ERROR:' + e.message;
   }
