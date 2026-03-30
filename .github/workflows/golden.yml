@@ -7,6 +7,9 @@ on:
       - '.github/workflows/golden.yml'
       - 'tests/grammars/**'
 
+permissions:
+  contents: write
+
 jobs:
   golden:
     runs-on: ubuntu-latest
