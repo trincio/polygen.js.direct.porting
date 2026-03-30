@@ -153,6 +153,14 @@ run("optional absent seed",
   'S ::= [maybe] ;',
   { seed: 2 }, Polygen.generate('S ::= [maybe] ;', { seed: 2 }));
 
+run("optional present explicit",
+  'S ::= [maybe] ;',
+  { seed: 1 }, "maybe");
+
+run("optional absent explicit",
+  'S ::= [maybe] ;',
+  { seed: 2 }, "");
+
 // ─────────────────────────────────────────────────────────────────────
 // LABEL
 // ─────────────────────────────────────────────────────────────────────
@@ -172,6 +180,18 @@ run("label fallthrough (no label = always match)",
 run("multi-label selector",
   'S ::= A.(sg|pl) ; A ::= sg: uno | pl: due | ne: tre ;',
   { seed: 42 }, Polygen.generate('S ::= A.(sg|pl) ; A ::= sg: uno | pl: due | ne: tre ;', { seed: 42 }));
+
+run("label fallthrough explicit",
+  'S ::= A ; A ::= sg: one | always ;',
+  { seed: 42, labels: ["sg"] }, "always");
+
+run("multi-label selector ocaml explicit",
+  'S ::= A.(sg|pl) ; A ::= sg: uno | pl: due | ne: tre ;',
+  { seed: 42, prng: "ocaml" }, "due");
+
+run("label via opts ocaml explicit",
+  'S ::= A ; A ::= sg: one | pl: two ;',
+  { seed: 42, prng: "ocaml", labels: ["pl"] }, "two");
 
 // ─────────────────────────────────────────────────────────────────────
 // ASSIGNMENT :=
@@ -233,6 +253,10 @@ run("local shadow outer",
 run("repetition plus",
   'S ::= (a)+ ;',
   { seed: 42 }, Polygen.generate('S ::= (a)+ ;', { seed: 42 }));
+
+run("repetition plus explicit",
+  'S ::= (a)+ ;',
+  { seed: 42 }, "a a");
 
 // ─────────────────────────────────────────────────────────────────────
 // COMPILE + GENERATE SEPARATI
@@ -481,7 +505,7 @@ asyncTest("import basic", (function() {
     }
   }).then(function(grammar) {
     var result = Polygen.generate(null, { grammar: grammar, seed: 1 });
-    return ["red","green","blue"].indexOf(result) >= 0;
+    return result === "green";
   });
 })());
 
@@ -519,7 +543,7 @@ asyncTest("import nested", (function() {
 asyncTest("generateAsync", (function() {
   return Polygen.generateAsync('S ::= async | works ;', { seed: 42 })
     .then(function(result) {
-      return result === "async" || result === "works";
+      return result === "works";
     });
 })());
 
