@@ -194,6 +194,10 @@ run("mobile group produces permutation",
   'S ::= {a} {b} {c} ;',
   { seed: 42 }, Polygen.generate('S ::= {a} {b} {c} ;', { seed: 42 }));
 
+run("mobile permute with weighted alternatives (ocaml)",
+  'S ::= {++ (due | tre | quattro)} {-- (uno | due)} ;',
+  { seed: 42, prng: "ocaml" }, "due due");
+
 // ─────────────────────────────────────────────────────────────────────
 // DICHIARAZIONI LOCALI
 // ─────────────────────────────────────────────────────────────────────
