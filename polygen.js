@@ -325,10 +325,9 @@
   // expand: da lista [(peso,x),...] a lista ripetuta normalizzata
   function expand(l) {
     if (l.length === 0) fail("expand: lista vuota");
-    var s = l.slice().sort(function(a,b){ return a[0]-b[0]; });
-    var k = s[0][0];
+    var k = l.slice().sort(function(a,b){ return a[0]-b[0]; })[0][0];
     var r = [];
-    s.forEach(function(item){
+    l.forEach(function(item){
       for (var i = 0; i < item[0]-k+1; i++) r.push(item[1]);
     });
     return r;
@@ -828,7 +827,7 @@
 
     var env   = declare(Env.empty, lbs, decls1);
     var terms = genAtom(env, lbs, {type:"NonTerm", path:mkPath([], startSym)});
-    return post(terms);
+    return post(terms).trimEnd();
   }
 
   // ══════════════════════════════════════════════════════════════
