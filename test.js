@@ -471,6 +471,10 @@ run("lock inside deep unfold seed42 ocaml explicit",
   'S ::= >> A | < B << ; A ::= x | y ; B ::= p | q ;',
   { seed: 42, prng: "ocaml" }, "x");
 
+run("lock inside deep unfold seed3 ocaml explicit",
+  'S ::= >> A | < B << ; A ::= x | y ; B ::= p | q ;',
+  { seed: 3, prng: "ocaml" }, "q");
+
 run("lock inside deep unfold seed1",
   'S ::= >> A | < B << ; A ::= x | y ; B ::= p | q ;',
   { seed: 1 }, "y");
@@ -605,6 +609,23 @@ asyncTest("import nested", (function() {
                ["cat","dog"].indexOf(parts[1]) >= 0;
       });
       return allOk && keys.length >= 3; // almeno 3 combinazioni distinte su 20 seed
+    });
+})());
+
+asyncTest("import nested explicit seed7", (function() {
+  var files = {
+    "main.grm": 'import "adj.grm" as Adj;\nimport "noun.grm" as Noun;\nS ::= Adj Noun ;',
+    "adj.grm":  'import "base.grm" as Base;\nS ::= big | small | Base ;',
+    "noun.grm": 'S ::= cat | dog ;',
+    "base.grm": 'S ::= tiny ;'
+  };
+  var loader = function(f) {
+    return files[f] ? Promise.resolve(files[f])
+                    : Promise.reject(new Error("file non trovato: " + f));
+  };
+  return Polygen.compileAsync(files["main.grm"], { loader: loader })
+    .then(function(grammar) {
+      return Polygen.generate(null, {grammar: grammar, seed: 7}) === "tiny cat";
     });
 })());
 
