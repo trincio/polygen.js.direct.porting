@@ -81,6 +81,115 @@ const grammars = [
 
 // ─────────────────────────────────────────────────────────────────────────────
 {
+name: "0. Story Skeleton per LLM",
+src: `S ::= Story.(m|f) ;
+NL ::= "\\n"^;
+PAR ::= "\\n\\n"^;
+
+Story ::= (
+  Hero := Protagonista;
+  Motore := OggettoMotore;
+  Nemico := Antagonista;
+
+  "TITOLO: "^ TitoloBase PAR
+
+  "[FASE 1 - SETUP]" NL
+  "Protagonista: "^ Hero ^ ", " ^ Ruolo ^ " in " ^ Scenario ^ "." NL
+  "Ferita iniziale: "^ Ferita ^ "." NL
+  "Macroconcetto: "^ Macroconcetto ^ "." NL
+  "Metafora guida: "^ Metafora ^ "." PAR
+
+  "[FASE 2 - INCIDENTE SCATENANTE]" NL
+  "Evento: "^ EventoScatenante ^ "." NL
+  "Oggetto motore: "^ Motore ^ "." PAR
+
+  "[FASE 3 - DESIDERIO E DIREZIONE]" NL
+  Pronome ^ " decide di " ^ ("decifrare "^ Motore | "proteggere "^ Motore | "distruggere "^ Motore | "consegnare "^ Motore ^ " alla persona sbagliata per attirare il vero nemico") ^ "." NL
+  "Posta in gioco: "^ Posta ^ "." PAR
+
+  "[FASE 4 - OPPOSIZIONE]" NL
+  "Forza antagonista: "^ Nemico ^ "." NL
+  "Metodo di pressione: "^ PressioneAntagonista ^ "." PAR
+
+  [
+    "[MECCANISMO - FLASHBACK]" NL
+    "Ritorno al passato: "^ ("il giorno in cui "^ Hero ^ " ha scelto il silenzio invece della verita" | "l'ultima conversazione con la figura perduta che ancora orienta ogni gesto" | "la prima volta in cui il sistema ha chiesto una piccola menzogna in cambio di ordine") ^ "." PAR
+  ]
+
+  [
+    "[MECCANISMO - ANTICIPAZIONE]" NL
+    "Immagine del futuro: "^ Anticipazione ^ "." PAR
+  ]
+
+  "[FASE 5 - SVOLTA CENTRALE]" NL
+  "Rivelazione: "^ Rivelazione ^ "." NL
+  "Nuova lettura del conflitto: "^ Rilettura ^ "." PAR
+
+  "[FASE 6 - CLIMAX]" NL
+  Pronome ^ " affronta " ^ ("la comunita che vuole una bugia funzionale" | Nemico | "la macchina rituale che decide cosa resta nel racconto comune") ^ "." NL
+  "Scelta irreversibile: "^ Scelta ^ "." PAR
+
+  "[FASE 7 - ESITO]" NL
+  "Conseguenza: "^ Conseguenza ^ "." NL
+  "Immagine finale: "^ ImmagineFinale ^ "." PAR
+
+  "[NOTE PER LLM]" NL
+  "Espandere in scene, mantenendo: "^ VincoloScena ^ "." NL
+  "Tono suggerito: "^ Tono ^ "." NL
+  "Relazione simbolica da far tornare: "^ (Motore ^ " <-> " ^ Metafora | Ferita ^ " <-> " ^ Conseguenza | Macroconcetto ^ " <-> " ^ ImmagineFinale) ^ "."
+) ;
+
+TitoloBase ::= "La "^ Nucleo ^ " e " ^ EcoTitolo
+             | "Il "^ Nucleo ^ " contro " ^ EcoTitolo
+             | Nucleo ^ " sotto " ^ Pressione ;
+Nucleo ::= archivio | confine | patto | ritorno | debito | segnale | giardino | processo ;
+EcoTitolo ::= "la citta che ascolta" | "il vuoto che ricorda" | "la fame del tempo" | "la macchina dei presagi" | "il peso delle promesse" ;
+Pressione ::= "un cielo industriale" | "una marea sintetica" | "una profezia amministrativa" | "un inverno di vetro" ;
+
+Protagonista ::= m: "Elia" | m: "Neri" | m: "Milo" | m: "Teseo" | f: "Mara" | f: "Iris" | f: "Lea" | f: "Nora" ;
+Ruolo ::= m: "un archivista di emergenza" | m: "un cartografo del sottosuolo" | m: "un tecnico dei segnali civici" | m: "un curatore di reliquie industriali"
+        | f: "una restauratrice di mappe" | f: "una mediatrice di quartiere" | f: "una progettista di dighe cognitive" | f: "una biologa dei suoni urbani" ;
+Pronome ::= m: "Lui" | f: "Lei" ;
+
+Scenario ::= "una citta lagunare che registra i sogni" | "un altopiano di serre militari" | "un distretto portuale riconvertito a santuario dei dati" | "una valle eolica governata da protocolli rituali" ;
+Ferita ::= "ha lasciato fallire una promessa pubblica" | "non ha impedito la scomparsa di un familiare" | "ha tradito il proprio mentore per paura" | "ha taciuto quando il sistema chiedeva una vittima" ;
+Macroconcetto ::= "memoria contro controllo" | "cura contro efficienza" | "identita contro archivio" | "fiducia contro previsione" ;
+Metafora ::= "la memoria come diga lesionata" | "il desiderio come archivio sommerso" | "il potere come serra che cresce al buio" | "la colpa come faro spento in pieno giorno" ;
+
+EventoScatenante ::= "arriva un messaggio che sembra scritto dal futuro" | "riappare un oggetto creduto distrutto" | "un guasto urbano ripete una frase intima del protagonista" | "una folla assiste a un errore che nessuna macchina ammette" ;
+OggettoMotore ::= "un atlante che anticipa gli incendi" | "una chiave biologica senza serratura" | "un registro pieno di nomi cancellati" | "una lente che mostra solo le omissioni" ;
+Posta ::= "se fallisce, la comunita accettera una versione falsa del passato" | "se fallisce, il potere riscrivera chi merita di essere ricordato" | "se fallisce, il protagonista perdera anche il diritto di nominare la propria ferita" ;
+
+Antagonista ::= "un consorzio che vende previsioni come sacramenti" | "la direttrice di un archivio che cancella per proteggere" | "un fratello politico convinto di poter sterilizzare il caos" | "una rete di uffici che parla con una sola voce" ;
+PressioneAntagonista ::= "offre pace in cambio di oblio" | "trasforma ogni dubbio in procedura" | "usa la vergogna privata come leva pubblica" | "anticipa le mosse del protagonista e le fa sembrare colpevoli" ;
+Anticipazione ::= "una stanza finale piena di acqua e registratori accesi" | "una piazza che applaude proprio mentre qualcosa crolla" | "il protagonista che tiene in mano l'oggetto motore ma rifiuta di usarlo" ;
+
+Rivelazione ::= "l'antagonista custodisce una parte autentica della verita" | "l'oggetto motore non predice: seleziona chi verra creduto" | "la ferita iniziale e stata costruita da una catena di omissioni condivise" | "il protagonista era gia dentro il meccanismo che pensava di sabotare" ;
+Rilettura ::= "la lotta non e contro un colpevole ma contro un'infrastruttura morale" | "salvare una persona e incompatibile con salvare la versione ufficiale dei fatti" | "il desiderio privato coincide con una frattura collettiva" ;
+Scelta ::= "dire la verita sapendo che distruggera il patto sociale" | "mentire una volta sola per aprire uno spazio di cura reale" | "sacrificare l'oggetto motore per restituire opacita al mondo" | "esporsi come responsabile pur di spezzare la catena delle deleghe" ;
+Conseguenza ::= "il mondo non guarisce, ma cambia il lessico con cui nomina il danno" | "il protagonista salva qualcuno e perde il proprio ruolo pubblico" | "la comunita resta divisa, pero smette di fingere neutralita" | "l'ordine continua, ma da ora contiene una crepa visibile" ;
+ImmagineFinale ::= "una mappa bagnata stesa al sole" | "un archivio aperto durante una tempesta" | "una voce registrata che finalmente ammette il dubbio" | "due persone che osservano la citta senza piu descriverla allo stesso modo" ;
+VincoloScena ::= "scene concrete, poca astrazione dichiarata, ogni concetto incarnato in un gesto o in un oggetto" | "alternanza fra pressione pubblica e colpa privata" | "dialoghi brevi, conflitto netto, immagini materiali ricorrenti" ;
+Tono ::= "solenne ma leggibile" | "teso, urbano, simbolico" | "politico-intimo con dettagli sensoriali" | "visionario ma ancorato a procedure e corpi" ;`,
+
+desc: `<h2>Story Skeleton per LLM</h2>
+<p>Genera un'ossatura narrativa in fasi: setup, incidente, desiderio, opposizione, eventuale flashback,
+eventuale anticipazione, svolta, climax, esito e note finali per rifinitura LLM.</p>
+<p>Lo scopo non e la prosa finale, ma un output strutturato che mantenga coerenza su protagonista,
+oggetto motore e forza antagonista, cosi da poterlo passare a un modello per espansione in scene.</p>
+<p>La stessa grammatica e disponibile anche nel file <code>story-skeleton-demo.grm</code>.</p>
+<div class="tags">
+  <span class="tag">demo narrativo</span>
+  <span class="tag">:= binding locale</span>
+  <span class="tag">label m/f</span>
+  <span class="tag">flashback</span>
+  <span class="tag">anticipazione</span>
+  <span class="tag">LLM scaffold</span>
+</div>`
+},
+
+// ─────────────────────────────────────────────────────────────────────────────
+{
 name: "1. Accordo verbale (label)",
 src: `(* ROMANZO NOIR — accordo di tempo verbale tramite label *)
 
