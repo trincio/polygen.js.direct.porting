@@ -283,6 +283,51 @@ runThrows("import without loader",
   'import "foo.grm" as Foo;\nS ::= Foo ;',
   {}, "import non risolto");
 
+runThrows("import dentro sub non consentito",
+  'S ::= (import "foo.grm" as Foo; Foo) ;',
+  {}, "import consentito solo a livello top");
+
+// ─────────────────────────────────────────────────────────────────────
+// UNFOLD CICLICO — guard centralizzato in preprocess() (no più RangeError)
+// ─────────────────────────────────────────────────────────────────────
+// Prima del fix, questi casi mandavano in stack-overflow grezzo (RangeError)
+// invece di lanciare un PolygenError leggibile, perché preprocess() espande
+// gli Unfold in modo eager a compile-time senza alcun guard di ciclo — il
+// maxDepth di generate() protegge solo l'interprete a runtime.
+
+runThrows("unfold ciclico diretto",       'S ::= > S ;',                {}, "unfold ciclico del simbolo 'S'");
+runThrows("unfold ciclico indiretto",     'S ::= > A ; A ::= > S ;',    {}, "unfold ciclico del simbolo");
+runThrows("ciclo dentro gruppo (>S)",     'S ::= (> S) ;',              {}, "unfold ciclico del simbolo 'S'");
+runThrows("ciclo dentro optional [>S]",   'S ::= [> S] ;',              {}, "unfold ciclico del simbolo 'S'");
+runThrows("ciclo dentro mobile {>S}",     'S ::= {> S} ;',              {}, "unfold ciclico del simbolo 'S'");
+runThrows("ciclo dentro lock <(>S)",      'S ::= <(> S) ;',             {}, "unfold ciclico del simbolo 'S'");
+runThrows("ciclo dentro decl locale",     'S ::= (T ::= > S ; T) ;',    {}, "unfold ciclico del simbolo 'S'");
+runThrows("ciclo dentro deep-unfold",     'S ::= >> S << ;',            {}, "unfold ciclico del simbolo 'S'");
+
+// controllo positivo: Lock (<) non segue il riferimento a compile-time,
+// quindi compila senza esplodere — il ciclo si manifesta solo a runtime
+// ed è il maxDepth di generate() (non il guard di preprocess) a fermarlo.
+runThrows("lock <S ricorsivo fermato da maxDepth",
+  'S ::= < S ;', { maxDepth: 50 }, "ricorsione troppo profonda");
+
+// controllo: catena aciclica ma esponenziale (ogni simbolo si espande in
+// due copie del successivo) — non deve crashare, deve solo produrre più
+// alternative del previsto (il budget di preprocess la lascia passare
+// perché resta sotto DEFAULT_MAX_ALTERNATIVES).
+(function() {
+  var chain = "";
+  for (var i = 1; i <= 12; i++)
+    chain += "A" + i + " ::= " + (i < 12 ? (">A" + (i+1) + " >A" + (i+1)) : '"x"') + " ;\n";
+  try {
+    var out = Polygen.generate(chain, { start: "A1", seed: 1 });
+    var n = out.split(" ").length;
+    if (n === 2048) { passed++; if (VERBOSE) console.log("  PASS  acyclic blowup 12-chain (2048 token)"); }
+    else { failed++; console.log("  FAIL  acyclic blowup 12-chain: atteso 2048 token, ottenuti " + n); }
+  } catch (e) {
+    failed++; console.log("  FAIL  acyclic blowup 12-chain threw: " + e.message);
+  }
+})();
+
 // ─────────────────────────────────────────────────────────────────────
 // CHECKER (Polygen.check)
 // ─────────────────────────────────────────────────────────────────────
@@ -403,6 +448,34 @@ runThrows("import without loader",
       console.log("        got: " + JSON.stringify(warnings));
     }
   })();
+
+  // checkUnfolding deve scendere dentro Fold/Lock(Sub), non solo Unfold —
+  // altrimenti un ciclo "nascosto" dentro un gruppo/optional/mobile/lock/
+  // deep-unfold passa il check e poi crasha con RangeError a compile-time.
+  checkExact("cyclic unfold hidden in group (>S)",
+    'S ::= (> S) ;', {}, ["unfold ciclico del simbolo 'S'"], []);
+
+  checkExact("cyclic unfold hidden in optional [>S]",
+    'S ::= [> S] ;', {}, ["unfold ciclico del simbolo 'S'"], []);
+
+  checkExact("cyclic unfold hidden in mobile {>S}",
+    'S ::= {> S} ;', {}, ["unfold ciclico del simbolo 'S'"],
+    ["permutazione inutile (un solo elemento mobile)"]);
+
+  checkExact("cyclic unfold hidden in lock-group <(>S)",
+    'S ::= <(> S) ;', {}, ["unfold ciclico del simbolo 'S'"], []);
+
+  checkExact("cyclic unfold hidden in local decl",
+    'S ::= (T ::= > S ; T) ;', {}, ["unfold ciclico del simbolo 'S'"], []);
+
+  // Fold/Lock su un semplice NonTerm non deve tracciare (non seguono il
+  // riferimento a compile-time) — nessun errore, nessun falso positivo.
+  check("lock su NonTerm semplice non traccia", 'S ::= < S ;', {}, 0, 0);
+  check("fold su NonTerm semplice non traccia", 'S ::= T ; T ::= x ;', {}, 0, 0);
+
+  // checkFlat trattava un import come simbolo non definito: falso positivo.
+  check("import trattato come simbolo definito (no falso positivo)",
+    'import "lib" as X ; S ::= X ;', {}, 0, 0);
 })();
 
 // ─────────────────────────────────────────────────────────────────────
@@ -567,6 +640,27 @@ function asyncTest(name, promise) {
   );
 }
 
+// come asyncTest, ma la promise DEVE essere rejected con un messaggio che
+// contiene expectedMsgSubstring (per errori attesi: cicli, duplicati, ecc.)
+function asyncTestRejects(name, promise, expectedMsgSubstring) {
+  asyncTests.push(
+    promise.then(function() {
+      failed++;
+      console.log("  FAIL  async:" + name + " (atteso reject, la promise si è risolta)");
+    }, function(e) {
+      var msg = e && e.message ? e.message : String(e);
+      if (msg.indexOf(expectedMsgSubstring) >= 0) {
+        passed++; if (VERBOSE) console.log("  PASS  async:" + name + " (rejected: " + msg + ")");
+      } else {
+        failed++;
+        console.log("  FAIL  async:" + name + " (messaggio di reject diverso da atteso)");
+        console.log("        expected substring: " + JSON.stringify(expectedMsgSubstring));
+        console.log("        got message:        " + JSON.stringify(msg));
+      }
+    })
+  );
+}
+
 // import semplice
 asyncTest("import basic", (function() {
   var mainSrc   = 'import "colors.grm" as Colors;\nS ::= Colors ;';
@@ -654,6 +748,70 @@ asyncTest("compileAsync no imports", (function() {
       return Polygen.generate(null, {grammar: grammar, seed: 42}) === "pure";
     });
 })());
+
+// ─────────────────────────────────────────────────────────────────────
+// IMPORT ASYNC — cicli, diamante, simboli duplicati
+// ─────────────────────────────────────────────────────────────────────
+// Prima del fix, un import circolare (auto-import o ciclo a due file) mandava
+// compileAsync in ricorsione asincrona infinita fino a OOM del processo,
+// senza alcuna diagnostica. Ora loadingChain rileva il ciclo e rigetta con
+// un PolygenError leggibile.
+
+asyncTestRejects("compileAsync self-import cycle",
+  Polygen.compileAsync('import "a.grm" as A;\nS ::= A ;', {
+    loader: function(f) {
+      var files = { "a.grm": 'import "a.grm" as X;\nS ::= X ;' };
+      return files[f] ? Promise.resolve(files[f]) : Promise.reject(new Error("no file " + f));
+    }
+  }),
+  "import circolare");
+
+asyncTestRejects("compileAsync two-file import cycle",
+  Polygen.compileAsync('import "a.grm" as A;\nS ::= A ;', {
+    loader: function(f) {
+      var files = {
+        "a.grm": 'import "b.grm" as B;\nS ::= B ;',
+        "b.grm": 'import "a.grm" as A;\nS ::= A ;'
+      };
+      return files[f] ? Promise.resolve(files[f]) : Promise.reject(new Error("no file " + f));
+    }
+  }),
+  "import circolare");
+
+// import a diamante: due moduli diversi importano lo stesso terzo file —
+// deve essere caricato/compilato una sola volta (fileCache dedup per
+// filename), e la sua cache `:=` interna deve essere condivisa da entrambi
+// i punti di importazione nella stessa generate().
+asyncTest("compileAsync diamond import shares cache", (function() {
+  var files = {
+    "b.grm": 'import "d.grm" as D;\nS ::= D ;',
+    "c.grm": 'import "d.grm" as D;\nS ::= D ;',
+    "d.grm": 'X := "a" | "b" | "c" | "d" | "e" ;\nS ::= X ;'
+  };
+  var loader = function(f) {
+    return files[f] ? Promise.resolve(files[f]) : Promise.reject(new Error("no file " + f));
+  };
+  return Polygen.compileAsync(
+    'import "b.grm" as B;\nimport "c.grm" as C;\nS ::= B ^ " " ^ C ;',
+    { loader: loader }
+  ).then(function(grammar) {
+    for (var s = 0; s < 50; s++) {
+      var out = Polygen.generate(null, { grammar: grammar, seed: s });
+      var parts = out.split(" ");
+      if (parts[0] !== parts[1]) return false; // stessa cache `:=` → devono sempre coincidere
+    }
+    return true;
+  });
+})());
+
+asyncTestRejects("compileAsync duplicate import symbol rejects cleanly",
+  Polygen.compileAsync('import "a.grm" as X;\nimport "b.grm" as X;\nS ::= X ;', {
+    loader: function(f) {
+      var files = { "a.grm": 'S ::= "a" ;', "b.grm": 'S ::= "b" ;' };
+      return files[f] ? Promise.resolve(files[f]) : Promise.reject(new Error("no file " + f));
+    }
+  }),
+  "simbolo di import duplicato");
 
 // ─────────────────────────────────────────────────────────────────────
 // RISULTATO FINALE

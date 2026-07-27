@@ -437,12 +437,8 @@
           decls.push(mkBind(mode, name, p));
         } else { pos = saved; break; }
       }
-      // import dentro sub (non supportato, skip)
-      while (is("IMPORT")) {
-        next(); var f = expect("QUOTE").v; expect("AS"); var s = expect("NONTERM").v;
-        if (is("EOL")) next();
-        decls.push(mkImport(s, f, []));
-      }
+      if (is("IMPORT"))
+        fail("import consentito solo a livello top, non dentro un sub-espressione");
       var prod = parseProd();
       expect(close);
       return {decls:decls, prod:prod};
@@ -571,6 +567,8 @@
     return out;
   }
 
+  function factorial(n) { var r = 1; for (var i = 2; i <= n; i++) r *= i; return r; }
+
   // permute: tutte le permutazioni di una lista
   // Ordine identico all'implementazione OCaml (pre.ml: expl/perm)
   function permute(l) {
@@ -614,9 +612,13 @@
   function b1Bind(mode, sym, p)        { return {type:"Bind",       mode:mode, sym:sym, prod:p}; }
   function b1Import(sym, importedDecls1) { return {type:"ImportBind", sym:sym, importedDecls1:importedDecls1}; }
 
+  var DEFAULT_MAX_ALTERNATIVES = 1000000;
+
   // resolvedImports: mappa { sym → decls1 } per import già caricati
-  function preprocess(decls0, resolvedImports) {
+  // opts.maxAlternatives: tetto sul numero di alternative espanse (guard anti blow-up)
+  function preprocess(decls0, resolvedImports, opts) {
     resolvedImports = resolvedImports || {};
+    var maxAlternatives = (opts && opts.maxAlternatives != null) ? opts.maxAlternatives : DEFAULT_MAX_ALTERNATIVES;
 
     function declare(env, decls) {
       return Env.bind(env, decls.map(function(d){
@@ -625,13 +627,18 @@
       }));
     }
 
-    function preAtom(env, a) {
+    function checkBudget(ctx) {
+      if (ctx.budget.v > maxAlternatives)
+        fail("grammatica troppo grande in espansione (limite alternative: " + maxAlternatives + ")");
+    }
+
+    function preAtom(env, a, ctx) {
       switch (a.type) {
         case "Terminal":
           return [Latter(b1T(a.terminal))];
 
         case "Sel":
-          return preAtom(env, a.atom).map(function(ma){
+          return preAtom(env, a.atom, ctx).map(function(ma){
             var s = b1Sel(ma.val, a.label);
             return isFormer(ma) ? Former(s) : Latter(s);
           });
@@ -641,7 +648,7 @@
           var u = a.unfoldable;
           if (u.type === "NonTerm") return [Latter(b1NT(u.path))];
           var env2 = declare(env, u.decls);
-          var s = b1Sub(preDecls(env2, u.decls), preProd(env2, u.prod));
+          var s = b1Sub(preDecls(env2, u.decls, ctx), preProd(env2, u.prod, ctx));
           return u.mode === "Mob" ? [Former(s)] : [Latter(s)];
         }
 
@@ -650,12 +657,15 @@
           if (u.type === "NonTerm") {
             var resolvedProd = Env.lookup(env, u.path);
             if (resolvedProd === null) fail("impossibile unfoldare un import: '" + u.path.sym + "'");
-            var p1 = preProd(env, resolvedProd);
+            if (ctx.chain.indexOf(resolvedProd) >= 0)
+              fail("unfold ciclico del simbolo '" + u.path.sym + "'");
+            var ctx2 = { chain: ctx.chain.concat([resolvedProd]), budget: ctx.budget };
+            var p1 = preProd(env, resolvedProd, ctx2);
             return p1.seqs.map(function(seq){ return Latter(b1Sub([], b1Prod([seq]))); });
           }
           var env2 = declare(env, u.decls);
-          var p1   = preProd(env2, u.prod);
-          var mkS  = function(seq){ return b1Sub(preDecls(env2, u.decls), b1Prod([seq])); };
+          var p1   = preProd(env2, u.prod, ctx);
+          var mkS  = function(seq){ return b1Sub(preDecls(env2, u.decls, ctx), b1Prod([seq])); };
           return p1.seqs.map(function(seq){
             return u.mode === "Mob" ? Former(mkS(seq)) : Latter(mkS(seq));
           });
@@ -664,37 +674,51 @@
       fail("preAtom: tipo sconosciuto " + a.type);
     }
 
-    function preSeq(env, seq) {
-      var atomLists = seq.atoms.map(function(a){ return preAtom(env, a); });
-      var combos    = atomLists.length ? comb(atomLists) : [];
+    function preSeq(env, seq, ctx) {
+      var atomLists = seq.atoms.map(function(a){ return preAtom(env, a, ctx); });
+      // Stima la dimensione del prodotto cartesiano PRIMA di materializzarlo con comb():
+      // su una catena esponenziale, comb() da sola esaurirebbe l'heap prima che il
+      // conteggio effettivo (combos.length) sia mai controllabile.
+      var expectedCombos = atomLists.length
+        ? atomLists.reduce(function(acc, l){ return acc * l.length; }, 1)
+        : 0;
+      ctx.budget.v += expectedCombos;
+      checkBudget(ctx);
+      var combos = atomLists.length ? comb(atomLists) : [];
       var newSeqs   = function(label, atomss){
         return atomss.map(function(atoms){ return b1Seq(label, atoms); });
       };
       var subs = combos.map(function(mseq){
-        return b1Sub([], b1Prod(newSeqs(null, arrange(mseq))));
+        // Idem: il fattoriale dei mobili va stimato prima di chiamare arrange()/permute().
+        var mobileCount = mseq.filter(isFormer).length;
+        ctx.budget.v += factorial(mobileCount);
+        checkBudget(ctx);
+        var arranged = arrange(mseq);
+        return b1Sub([], b1Prod(newSeqs(null, arranged)));
       });
       return newSeqs(seq.label, subs.map(function(s){ return [s]; }));
     }
 
-    function preProd(env, prod) {
+    function preProd(env, prod, ctx) {
       var seqs = [];
-      prod.seqs.forEach(function(seq){ preSeq(env, seq).forEach(function(s){ seqs.push(s); }); });
+      prod.seqs.forEach(function(seq){ preSeq(env, seq, ctx).forEach(function(s){ seqs.push(s); }); });
       return b1Prod(seqs);
     }
 
-    function preDecls(env, decls) {
+    function preDecls(env, decls, ctx) {
       return decls.map(function(d){
         if (d.type === "Import") {
           var imp = resolvedImports[d.sym];
           if (imp == null) fail("import non risolto: '" + d.sym + "' (file: " + d.filename + "). Usa compileAsync con un loader.");
           return b1Import(d.sym, imp);
         }
-        return b1Bind(d.mode, d.sym, preProd(env, d.prod));
+        return b1Bind(d.mode, d.sym, preProd(env, d.prod, ctx));
       });
     }
 
     var env = declare(Env.empty, decls0);
-    return preDecls(env, decls0);
+    var ctx = { chain: [], budget: {v: 0} };
+    return preDecls(env, decls0, ctx);
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -758,15 +782,31 @@
     maxDepth = maxDepth || DEFAULT_MAX_DEPTH;
     var select = doShuffle ? shuffleSelect : plainSelect;
     var depth  = 0;
+    // Cache per identità dell'albero importedDecls1: due ImportBind che condividono lo
+    // stesso modulo (stesso file, deduplicato da compileAsync) condividono anche l'impEnv
+    // e quindi le cache `:=` interne, per tutta la durata di questa generate().
+    var importEnvCache = new Map();
 
     function declare(env, closureLbs, decls) {
       var envRef = {v: null};
       var pairs  = decls.map(function(d) {
         if (d.type === "ImportBind") {
-          // Usa declare() ricorsivamente — gestisce import annidati correttamente
-          var impEnv = declare(Env.empty, closureLbs, d.importedDecls1);
+          var impEnv = importEnvCache.get(d.importedDecls1);
+          if (impEnv === undefined) {
+            // Usa declare() ricorsivamente — gestisce import annidati correttamente
+            impEnv = declare(Env.empty, closureLbs, d.importedDecls1);
+            importEnvCache.set(d.importedDecls1, impEnv);
+          }
           return [d.sym, function(lbs2){
-            return Env.lookup(impEnv, mkPath([], "S"))(lbs2);
+            var entry;
+            try { entry = Env.lookup(impEnv, mkPath([], "S")); }
+            catch (e) {
+              if (!e.notFound) throw e;
+              var defined = impEnv.map(function(p){ return p[0]; }).join(", ");
+              fail("il modulo importato come '" + d.sym + "' non definisce il simbolo d'ingresso 'S'" +
+                (defined ? " (simboli definiti nel modulo: " + defined + ")" : ""));
+            }
+            return entry(lbs2);
           }];
         }
         if (d.type !== "Bind") fail("declare: tipo inatteso " + d.type);
@@ -840,8 +880,8 @@
     var errors = [], warnings = [];
 
     function declareEnv(env, decls) {
-      return Env.bind(env, decls.filter(function(d){ return d.type === "Bind"; })
-        .map(function(d){ return [d.sym, d.prod]; }));
+      return Env.bind(env, decls.filter(function(d){ return d.type === "Bind" || d.type === "Import"; })
+        .map(function(d){ return d.type === "Import" ? [d.sym, null] : [d.sym, d.prod]; }));
     }
 
     function isMobile(a) {
@@ -923,7 +963,14 @@
       switch (a.type) {
         case "Terminal": return;
         case "Sel": checkAtom(env, uids, a.atom); return;
-        case "Fold": case "Lock": return; // non tracciano
+        case "Fold": case "Lock": {
+          var uf = a.unfoldable;
+          if (uf.type === "NonTerm") return; // non seguono il riferimento a preprocess-time
+          var envF = declareEnv(env, uf.decls);
+          checkDecls(envF, uids, uf.decls);
+          checkProd(envF, uids, uf.prod);
+          return;
+        }
         case "Unfold": {
           var u = a.unfoldable;
           if (u.type === "NonTerm") {
@@ -995,6 +1042,55 @@
     return { errors: errors, warnings: warnings };
   }
 
+  // compileAsyncImpl: implementazione ricorsiva di compileAsync.
+  // loadingChain: array di filename "in corso di caricamento" sul ramo corrente (cycle detection).
+  // fileCache: Map filename → Promise<decls1>, condivisa su tutto l'albero (dedup import diamante).
+  function compileAsyncImpl(source, opts, loadingChain, fileCache) {
+    var loader = opts.loader || null;
+    var decls0 = parse(source);
+    var imports = decls0.filter(function(d){ return d.type === "Import"; });
+
+    var seenSyms = {};
+    imports.forEach(function(imp){
+      if (seenSyms[imp.sym]) fail("simbolo di import duplicato: '" + imp.sym + "'");
+      seenSyms[imp.sym] = true;
+    });
+
+    if (imports.length === 0) {
+      return Promise.resolve(preprocess(decls0, {}, opts));
+    }
+    if (!loader) {
+      return Promise.reject(new PolygenError(
+        "la grammatica contiene import ma nessun loader è stato fornito in opts.loader"
+      ));
+    }
+
+    var promises = imports.map(function(imp) {
+      var filename = imp.filename;
+
+      if (loadingChain.indexOf(filename) >= 0) {
+        return Promise.reject(new PolygenError(
+          "import circolare: " + loadingChain.concat([filename]).join(" → ")
+        ));
+      }
+      if (fileCache.has(filename)) {
+        return fileCache.get(filename).then(function(compiled){ return [imp.sym, compiled]; });
+      }
+
+      var p = Promise.resolve(loader(filename)).then(function(src) {
+        return compileAsyncImpl(src, opts, loadingChain.concat([filename]), fileCache);
+      });
+      fileCache.set(filename, p);
+      return p.then(function(compiled){ return [imp.sym, compiled]; });
+    });
+
+    return Promise.all(promises).then(function(pairs) {
+      var resolvedImports = {};
+      pairs.forEach(function(pair){ resolvedImports[pair[0]] = pair[1]; });
+      return preprocess(decls0, resolvedImports, opts);
+    });
+  }
+
   // ══════════════════════════════════════════════════════════════
   // API PUBBLICA
   // ══════════════════════════════════════════════════════════════
@@ -1013,11 +1109,11 @@
         var report = checkGrammar(source, opts);
         if (report.errors.length > 0)
           fail("validazione fallita:\n" + report.errors.map(function(e){ return "  errore: " + e.message; }).join("\n"));
-        var grammar = preprocess(parse(source));
+        var grammar = preprocess(parse(source), null, opts);
         if (report.warnings.length > 0) grammar.warnings = report.warnings;
         return grammar;
       }
-      return preprocess(parse(source));
+      return preprocess(parse(source), null, opts);
     },
 
     /**
@@ -1043,7 +1139,7 @@
       if (opts.seed != null) { seedPrng(opts.seed >>> 0, opts.prng || 'mulberry32'); doShuffle = false; }
       else                   { doShuffle = true; }
       var maxDepth = opts.maxDepth != null ? opts.maxDepth >>> 0 : DEFAULT_MAX_DEPTH;
-      var decls1 = opts.grammar || preprocess(parse(source || ""));
+      var decls1 = opts.grammar || preprocess(parse(source || ""), null, opts);
       return generate(decls1, start, lbs, maxDepth);
     },
 
@@ -1064,34 +1160,8 @@
      */
     compileAsync: function (source, opts) {
       opts = opts || {};
-      var self = this;
-      var loader = opts.loader || null;
-      var decls0 = parse(source);
-      var imports = decls0.filter(function(d){ return d.type === "Import"; });
-
-      if (imports.length === 0) {
-        return Promise.resolve(preprocess(decls0, {}));
-      }
-      if (!loader) {
-        return Promise.reject(new PolygenError(
-          "la grammatica contiene import ma nessun loader è stato fornito in opts.loader"
-        ));
-      }
-
-      var promises = imports.map(function(imp) {
-        var loaded = loader(imp.filename);
-        return Promise.resolve(loaded).then(function(src) {
-          return self.compileAsync(src, opts).then(function(compiled) {
-            return [imp.sym, compiled];
-          });
-        });
-      });
-
-      return Promise.all(promises).then(function(pairs) {
-        var resolvedImports = {};
-        pairs.forEach(function(pair){ resolvedImports[pair[0]] = pair[1]; });
-        return preprocess(decls0, resolvedImports);
-      });
+      try { return compileAsyncImpl(source, opts, [], new Map()); }
+      catch (e) { return Promise.reject(e); }
     },
 
     /**
