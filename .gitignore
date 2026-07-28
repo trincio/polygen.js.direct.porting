@@ -5,8 +5,10 @@
 # Internal session notes
 CLAUDE.md
 
-# Claude Code local settings
-.claude/
+# Claude Code local settings (ma non le skill condivise: vedi sotto)
+.claude/*
+!.claude/skills/
+!.claude/skills/**
 
 # Screenshots
 *.png

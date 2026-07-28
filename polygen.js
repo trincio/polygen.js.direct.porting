@@ -309,11 +309,15 @@
     }))));
   }
   // posel: gestione colonne posizionali
+  // NOTA: OCaml costruisce le sequenze con `tab`, che le genera in ordine
+  // DISCENDENTE (n-1, n-2, ..., 0) — vedi prelude.ml: `(f n) :: tab f n`
+  // dopo aver decrementato n. Bisogna riprodurre lo stesso ordine, altrimenti
+  // lo stesso indice casuale seleziona l'alternativa opposta.
   function posel(atomss) {
     var n = atomss.reduce(function(z,a){ return Math.max(z, a.length); }, 1);
     if (n === 1) return atomss.map(function(a){ return a[0]; });
     var seqs = [];
-    for (var k = 0; k < n; k++) {
+    for (var k = n - 1; k >= 0; k--) {
       seqs.push(mkSeq(null, atomss.map(function(col){
         if (col.length === 1) return col[0];
         if (k < col.length)  return col[k];
@@ -414,8 +418,7 @@
         }
         if (is("DOT")) {
           next();
-          if (is("NONTERM") || is("TERM")) a = aSel(a, next().v);
-          else a = aSel(a, null);
+          a = aSel(a, null);
           continue;
         }
         break;
@@ -741,11 +744,13 @@
       if (t === T_EPS) continue;
       if (t === T_CAT) { spc = ""; continue; }
       if (t === T_CAP) {
+        // fedele a OCaml String.capitalize_ascii: tocca SOLO il primo
+        // carattere; se non e' una lettera ASCII, la stringa resta
+        // invariata (non si cerca la prima lettera piu' avanti).
         cap = function(s){
-          for (var j = 0; j < s.length; j++)
-            if (/[A-Za-z]/.test(s[j]))
-              return s.slice(0,j) + s[j].toUpperCase() + s.slice(j+1);
-          return s;
+          if (s.length === 0) return s;
+          var c0 = s[0];
+          return (/[a-z]/.test(c0) ? c0.toUpperCase() : c0) + s.slice(1);
         };
         continue;
       }

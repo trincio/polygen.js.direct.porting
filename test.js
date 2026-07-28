@@ -591,6 +591,64 @@ runThrows("path multi-level A/B",
   {}, "path non semplice");
 
 // ─────────────────────────────────────────────────────────────────────
+// CAPITALIZE fedele a String.capitalize_ascii — tocca SOLO il primo carattere
+// ─────────────────────────────────────────────────────────────────────
+// Prima del fix, il nostro cap() "cercava avanti" la prima lettera vera in
+// una stringa, capitalizzando "<z>" in "<Z>". L'OCaml reale usa
+// String.capitalize_ascii, che tocca solo l'indice 0: se non è una lettera
+// ASCII (es. '<'), la stringa resta invariata — non cerca oltre. Valori
+// verificati contro il binario OCaml reale via CI (tests/golden.json,
+// repro-capitalize-leak/*): la maiuscolizzazione "in sospeso" (perché il
+// simbolo a cui era applicata risolve a epsilon) attraversa un optional
+// successivo saltato, ma non deve toccare "<z>" perché '<' non è una
+// lettera — a differenza di quanto facevamo prima.
+run("capitalize non tocca simbolo iniziale non-lettera",
+  'S ::= "before" ["<x>" Cap] ["<y>"] "<z>" "tail" ^ "." ;\nCap ::= \\ (-- "word" | ++_) ;',
+  { seed: 0, prng: "ocaml" }, "before <z> tail.");
+
+run("capitalize non tocca simbolo iniziale non-lettera (seed 5)",
+  'S ::= "before" ["<x>" Cap] ["<y>"] "<z>" "tail" ^ "." ;\nCap ::= \\ (-- "word" | ++_) ;',
+  { seed: 5, prng: "ocaml" }, "before <x> <z> tail.");
+
+run("capitalize su lettera vera funziona come sempre",
+  'S ::= \\ "ciao mondo" ^ "." ;',
+  { seed: 1 }, "Ciao mondo.");
+
+// ─────────────────────────────────────────────────────────────────────
+// GENERAZIONE POSIZIONALE  A,B ... B,A  — ordine discendente come `tab`
+// ─────────────────────────────────────────────────────────────────────
+// Prima del fix, posel() costruiva le alternative in ordine ASCENDENTE
+// (k=0,1,...,n-1). L'OCaml reale usa `tab` (prelude.ml: `(f n) :: tab f n`
+// dopo aver decrementato n), che le costruisce in ordine DISCENDENTE
+// (n-1,...,0) — stesso indice casuale, alternativa opposta. Valori
+// verificati contro il binario OCaml reale via CI (repro-positional-
+// generation/*): ogni seme, prima del fix, dava l'alternativa invertita.
+run("generazione posizionale ordine discendente (seed 0)",
+  'S ::= Prefisso A,B eredita C,D ^ "." ;\nPrefisso ::= p1 | p2 | p3 ;\nA ::= a1 | a2 ;\nB ::= b1 | b2 ;\nC ::= c1 | c2 ;\nD ::= d1 | d2 ;',
+  { seed: 0, prng: "ocaml" }, "p2 b1 eredita d1.");
+
+run("generazione posizionale ordine discendente (seed 6)",
+  'S ::= Prefisso A,B eredita C,D ^ "." ;\nPrefisso ::= p1 | p2 | p3 ;\nA ::= a1 | a2 ;\nB ::= b1 | b2 ;\nC ::= c1 | c2 ;\nD ::= d1 | d2 ;',
+  { seed: 6, prng: "ocaml" }, "p1 a2 eredita c1.");
+
+// controllo positivo: la coppia scelta resta sempre coerente (stesso indice
+// per entrambe le colonne), a prescindere dall'ordine di costruzione
+(function() {
+  var src = 'S ::= A,B eredita C,D ^ "." ;\nA ::= a1 | a2 ;\nB ::= b1 | b2 ;\nC ::= c1 | c2 ;\nD ::= d1 | d2 ;';
+  var ok = true, sample = [];
+  for (var s = 0; s < 30; s++) {
+    var out = Polygen.generate(src, { seed: s, prng: "ocaml" });
+    var m = /^(a|b)\d eredita (c|d)\d\.$/.exec(out);
+    if (!m) { ok = false; break; }
+    var idxAB = m[1] === "a" ? 0 : 1, idxCD = m[2] === "c" ? 0 : 1;
+    if (idxAB !== idxCD) { ok = false; break; }
+    sample.push(out);
+  }
+  if (ok) { passed++; if (VERBOSE) console.log("  PASS  posel coppia sempre coerente su 30 semi"); }
+  else    { failed++; console.log("  FAIL  posel coppia incoerente:", JSON.stringify(sample)); }
+})();
+
+// ─────────────────────────────────────────────────────────────────────
 // DETERMINISMO SEED PRNG
 // ─────────────────────────────────────────────────────────────────────
 
