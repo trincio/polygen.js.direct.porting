@@ -1,0 +1,15 @@
+(* Grammatica minima per la sintassi a colonne posizionali (A,B ... C,D),
+ * usata nel corpus reale solo da oop.grm ("la classe DISNEY,MICROSOFT
+ * eredita da MICROSOFT,DISNEY") — dove abbiamo trovato una divergenza di
+ * contenuto reale rispetto a OCaml (real-oop/1, real-oop/99) che non siamo
+ * ancora riusciti a isolare nella grammatica completa. Qui la stessa
+ * costruzione (posel), preceduta da una scelta indipendente (Prefisso),
+ * isolata dal resto della complessita' di oop.grm, per capire se il
+ * meccanismo posizionale in se' e' fedele oppure no.
+ *)
+S ::= Prefisso A,B eredita C,D ^ ".";
+Prefisso ::= p1 | p2 | p3;
+A ::= a1 | a2;
+B ::= b1 | b2;
+C ::= c1 | c2;
+D ::= d1 | d2;

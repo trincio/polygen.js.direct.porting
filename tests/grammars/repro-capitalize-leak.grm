@@ -1,0 +1,10 @@
+(* Grammatica minima per isolare un sospetto: la maiuscolizzazione "in
+ * sospeso" (Cap risolve a epsilon dentro il primo optional) attraversa un
+ * secondo optional saltato e colpisce il testo letterale del terzo blocco.
+ * Trovato investigando la divergenza reale su real-artex/42 (<br> vs <Br>).
+ * Se OCaml produce "<Z>" anche lui, e' fedele (nessun bug, solo un
+ * meccanismo sorprendente ma corretto). Se OCaml produce "<z>", conferma
+ * un vero scostamento nel nostro post()/preprocess().
+ *)
+S ::= "before" ["<x>" Cap] ["<y>"] "<z>" "tail" ^ ".";
+Cap ::= \ (-- "word" | ++_);

@@ -130,5 +130,21 @@
   { "id": "real-autobus/99",       "grammar": "real-autobus",        "seed": 99 },
   { "id": "real-oop/1",            "grammar": "real-oop",            "seed": 1  },
   { "id": "real-oop/42",           "grammar": "real-oop",            "seed": 42 },
-  { "id": "real-oop/99",           "grammar": "real-oop",            "seed": 99 }
+  { "id": "real-oop/99",           "grammar": "real-oop",            "seed": 99 },
+
+  { "id": "repro-capitalize-leak/0",  "grammar": "repro-capitalize-leak", "seed": 0 },
+  { "id": "repro-capitalize-leak/5",  "grammar": "repro-capitalize-leak", "seed": 5 },
+  { "id": "repro-capitalize-leak/6",  "grammar": "repro-capitalize-leak", "seed": 6 },
+  { "id": "repro-capitalize-leak/9",  "grammar": "repro-capitalize-leak", "seed": 9 },
+
+  { "id": "repro-positional-generation/0", "grammar": "repro-positional-generation", "seed": 0 },
+  { "id": "repro-positional-generation/1", "grammar": "repro-positional-generation", "seed": 1 },
+  { "id": "repro-positional-generation/2", "grammar": "repro-positional-generation", "seed": 2 },
+  { "id": "repro-positional-generation/3", "grammar": "repro-positional-generation", "seed": 3 },
+  { "id": "repro-positional-generation/4", "grammar": "repro-positional-generation", "seed": 4 },
+  { "id": "repro-positional-generation/5", "grammar": "repro-positional-generation", "seed": 5 },
+  { "id": "repro-positional-generation/6", "grammar": "repro-positional-generation", "seed": 6 },
+  { "id": "repro-positional-generation/7", "grammar": "repro-positional-generation", "seed": 7 },
+  { "id": "repro-positional-generation/8", "grammar": "repro-positional-generation", "seed": 8 },
+  { "id": "repro-positional-generation/9", "grammar": "repro-positional-generation", "seed": 9 }
 ]
