@@ -12,7 +12,9 @@ permissions:
 
 jobs:
   golden:
-    runs-on: ubuntu-latest
+    # Fissato di proposito: OCaml 4.11.2 (richiesto dai sorgenti Polygen) non si
+    # compila con il GCC 15 / C23 di ubuntu-latest (ora ubuntu-26.04).
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout this repo
