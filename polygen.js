@@ -7,7 +7,9 @@
  *   Polygen.compile(source)              → grammarObject (riutilizzabile)
  *   Polygen.generate(source, opts)       → stringa generata
  *   Polygen.generate(null, opts)         → stringa (con opts.grammar = compilato)
- *   Polygen.generateMany(source, opts)   → array di N stringhe (come `-X N`, opts.times)
+ *   Polygen.generateMany(source, opts)   → array di N stringhe (opts.times)
+ *                                          ESTENSIONE: ricalca `-X N` del binario OCaml, che
+ *                                          polygen_lib non ha (vedi README "Additions")
  *   Polygen.seed(n)                    → imposta seed PRNG
  *
  *   opts: { start: "S", labels: ["lb1",...], seed: 42, grammar: compiled }
