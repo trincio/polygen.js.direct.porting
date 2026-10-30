@@ -872,6 +872,47 @@ asyncTestRejects("compileAsync duplicate import symbol rejects cleanly",
   "simbolo di import duplicato");
 
 // ─────────────────────────────────────────────────────────────────────
+// generateMany — equivalente di `-X N` del binario OCaml
+// ─────────────────────────────────────────────────────────────────────
+
+function check(name, cond, detail) {
+  if (UPDATE) return;
+  if (cond) { passed++; if (VERBOSE) console.log("  PASS  " + name); }
+  else { failed++; console.log("  FAIL  " + name); if (detail) console.log("        " + detail); }
+}
+
+(function () {
+  var g = 'S ::= a | b | c | d | e | f | g | h | i | j ;';
+  var many = Polygen.generateMany(g, { seed: 42, times: 6 });
+  check("generateMany: restituisce times elementi", many.length === 6, JSON.stringify(many));
+  check("generateMany: il PRNG prosegue (non 6 copie dello stesso risultato)",
+    new Set(many).size > 1, JSON.stringify(many));
+  check("generateMany: la prima generazione = generate() con lo stesso seed",
+    many[0] === Polygen.generate(g, { seed: 42 }), JSON.stringify(many[0]));
+  check("generateMany: deterministico a parità di seed",
+    JSON.stringify(many) === JSON.stringify(Polygen.generateMany(g, { seed: 42, times: 6 })));
+  check("generateMany: times assente = una generazione",
+    Polygen.generateMany(g, { seed: 42 }).length === 1);
+  check("generateMany: times 0 = array vuoto (come `for i = 1 to 0`)",
+    Polygen.generateMany(g, { seed: 42, times: 0 }).length === 0);
+  // contrasto: N chiamate a generate() con lo stesso seed ripartono dal PRNG iniziale
+  var rep = [1, 2, 3].map(function () { return Polygen.generate(g, { seed: 42 }); });
+  check("generate() ripetuto con lo stesso seed ripete lo stesso risultato (≠ generateMany)",
+    new Set(rep).size === 1, JSON.stringify(rep));
+  // le memoizzazioni `:=` valgono dentro una generazione, non tra generazioni
+  var memo = Polygen.generateMany('S ::= A A ; A := a | b | c | d | e | f | g | h ;',
+    { seed: 7, times: 12 });
+  check("generateMany: dentro una generazione `:=` è coerente (stesso valore due volte)",
+    memo.every(function (s) { var p = s.split(/\s+/); return p.length === 2 && p[0] === p[1]; }), JSON.stringify(memo));
+  check("generateMany: tra generazioni `:=` viene ricalcolato",
+    new Set(memo).size > 1, JSON.stringify(memo));
+  // grammatica compilata una volta sola
+  var comp = Polygen.compile(g);
+  check("generateMany: accetta opts.grammar (compilata una volta)",
+    JSON.stringify(Polygen.generateMany(null, { grammar: comp, seed: 42, times: 6 })) === JSON.stringify(many));
+})();
+
+// ─────────────────────────────────────────────────────────────────────
 // RISULTATO FINALE
 // ─────────────────────────────────────────────────────────────────────
 

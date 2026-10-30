@@ -91,6 +91,7 @@ jobs:
             const args = ['-seed', String(tc.seed)];
             if (tc.start && tc.start !== 'S') args.push('-S', tc.start);
             if (tc.labels) tc.labels.forEach(l => args.push('-l', l));
+            if (tc.times)  args.push('-X', String(tc.times));
             args.push(grmPath);
             try {
               const out = decodeBytes(execFileSync(POLYGEN, args)).trimEnd();

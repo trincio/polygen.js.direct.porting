@@ -7,7 +7,8 @@
  *   Polygen.compile(source)              → grammarObject (riutilizzabile)
  *   Polygen.generate(source, opts)       → stringa generata
  *   Polygen.generate(null, opts)         → stringa (con opts.grammar = compilato)
- *   Polygen.seed(n)                      → imposta seed PRNG
+ *   Polygen.generateMany(source, opts)   → array di N stringhe (come `-X N`, opts.times)
+ *   Polygen.seed(n)                    → imposta seed PRNG
  *
  *   opts: { start: "S", labels: ["lb1",...], seed: 42, grammar: compiled }
  */
@@ -1146,6 +1147,32 @@
       var maxDepth = opts.maxDepth != null ? opts.maxDepth >>> 0 : DEFAULT_MAX_DEPTH;
       var decls1 = opts.grammar || preprocess(parse(source || ""), null, opts);
       return generate(decls1, start, lbs, maxDepth);
+    },
+
+    /**
+     * Equivalente dell'opzione `-X N` del binario OCaml: N generazioni consecutive
+     * della stessa grammatica. Come in polygen.ml (`for i = 1 to !times do ...`):
+     *   - la grammatica è letta/preprocessata UNA volta sola;
+     *   - il PRNG è inizializzato UNA volta sola (opts.seed) e prosegue da una
+     *     generazione alla successiva: chiamare generate() N volte con lo stesso
+     *     seed darebbe invece N risultati identici;
+     *   - ogni generazione ricomincia da zero le memoizzazioni `:=`.
+     * @param {object} opts  - come generate(), più `times` (default 1; <= 0 → [])
+     * @returns {string[]}   - un elemento per generazione (il binario OCaml stampa
+     *                         ciascuno seguito da `-eof`, di default "\n")
+     */
+    generateMany: function (source, opts) {
+      opts = opts || {};
+      var times = opts.times != null ? opts.times | 0 : 1;
+      var start = opts.start  || "S";
+      var lbs   = LabelSet.ofLabels(opts.labels || []);
+      if (opts.seed != null) { seedPrng(opts.seed >>> 0, opts.prng || 'mulberry32'); doShuffle = false; }
+      else                   { doShuffle = true; }
+      var maxDepth = opts.maxDepth != null ? opts.maxDepth >>> 0 : DEFAULT_MAX_DEPTH;
+      var decls1 = opts.grammar || preprocess(parse(source || ""), null, opts);
+      var out = [];
+      for (var i = 0; i < times; i++) out.push(generate(decls1, start, lbs, maxDepth));
+      return out;
     },
 
     /**

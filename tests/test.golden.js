@@ -31,12 +31,19 @@ for (var i = 0; i < cases.length; i++) {
 
   var got;
   try {
-    got = Polygen.generate(src, {
+    var o = {
       seed:   tc.seed,
       start:  tc.start  || 'S',
       labels: tc.labels || [],
       prng:   'ocaml'
-    });
+    };
+    if (tc.times) {
+      // `-X N`: il binario OCaml stampa ogni generazione seguita da "\n" (-eof di default)
+      o.times = tc.times;
+      got = Polygen.generateMany(src, o).map(function (t) { return t + '\n'; }).join('');
+    } else {
+      got = Polygen.generate(src, o);
+    }
     got = got.trimEnd();
   } catch (e) {
     got = 'ERROR:' + e.message;
