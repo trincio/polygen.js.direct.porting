@@ -57,6 +57,32 @@ jobs:
           const cases   = JSON.parse(fs.readFileSync('tests/cases.json', 'utf8'));
           const golden  = {};
 
+          // Il binario OCaml emette byte grezzi: se una grammatica contiene un
+          // escape come \232, esce il singolo byte 0xE8 (Latin-1), che NON e'
+          // UTF-8 valido. Decodificare tutto come UTF-8 lo trasformava in "�"
+          // dentro golden.json. Qui si tiene come UTF-8 ogni sequenza valida
+          // (es. "è" scritta direttamente nel sorgente della grammatica) e si
+          // interpreta come Latin-1 ogni byte isolato che non lo e'.
+          const utf8 = new TextDecoder('utf-8', { fatal: true });
+          function decodeBytes(buf) {
+            let out = '';
+            let i = 0;
+            while (i < buf.length) {
+              const b = buf[i];
+              if (b < 0x80) { out += String.fromCharCode(b); i++; continue; }
+              const n = (b >= 0xF0 && b <= 0xF4) ? 4
+                      : (b >= 0xE0 && b <= 0xEF) ? 3
+                      : (b >= 0xC2 && b <= 0xDF) ? 2 : 0;
+              if (n && i + n <= buf.length) {
+                try { out += utf8.decode(buf.subarray(i, i + n)); i += n; continue; }
+                catch (e) { /* byte non UTF-8: cade sotto come Latin-1 */ }
+              }
+              out += String.fromCharCode(b);   // Latin-1: byte -> stesso code point
+              i++;
+            }
+            return out;
+          }
+
           for (const tc of cases) {
             const grmPath = path.join(grmsDir, tc.grammar + '.grm');
             const args = ['-seed', String(tc.seed)];
@@ -64,7 +90,7 @@ jobs:
             if (tc.labels) tc.labels.forEach(l => args.push('-l', l));
             args.push(grmPath);
             try {
-              const out = execFileSync(POLYGEN, args, { encoding: 'utf8' }).trimEnd();
+              const out = decodeBytes(execFileSync(POLYGEN, args)).trimEnd();
               golden[tc.id] = out;
             } catch (e) {
               golden[tc.id] = 'ERROR:' + e.message;
