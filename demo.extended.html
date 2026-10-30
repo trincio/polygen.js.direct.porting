@@ -532,7 +532,557 @@ desc: `<h2>🌹 Poesia generativa — tutti i costrutti</h2>
   <span class="tag">NT.(l1|l2) selettore</span>
 </div>`
 }
+,
 
+// ───────────────────────────────────────────────────────────────────────────────
+{
+name: "9. Crisi sul ponte di comando",
+src: `(* CRISI SUL PONTE DI COMANDO — porting.claude.js showcase
+ * Ispirata a: startrek.grm, sttng.grm (corpus reale Polygen)
+ * Costrutti: := binding, label: alternative accoppiate, {} mobile,
+ *            (sub)+ ripetizione, capitalize/concat
+ *)
+
+S ::= (
+  Nave := NomeNave;
+  "REGISTRO DI BORDO" ^ " —" Nave ^ "," "data stellare" Stardate ^ "." "\\n\\n"
+  Allarme "\\n"
+  (Battuta ^ "\\n")+
+  Battuta ^ "\\n\\n"
+  Chiusura
+);
+
+NomeNave ::= "USS Meridian" | "USS Custode" | "USS Vertice"
+           | "Stazione Kepler-9" | "Incrociatore Solstizio";
+
+Stardate ::= Cifra^Cifra^Cifra^Cifra^"."^Cifra;
+Cifra ::= 0|1|2|3|4|5|6|7|8|9;
+
+Allarme ::= \\ TipoAllarme ^ ":" SistemaStato ^ "!";
+TipoAllarme ::= "allarme rosso" | "allarme giallo" | "condizione critica";
+
+(* soggetto e verbo accoppiati nello stesso simbolo: niente disaccordo
+   singolare/plurale, a differenza di un riferimento incrociato via label *)
+SistemaStato ::= "il nucleo di dilitio" "e'" StatoSing
+                | "il campo di contenimento" "e'" StatoSing
+                | "la rete neurale della nave" "e'" StatoSing
+                | "gli scudi" "sono" StatoPlur
+                | "i sensori di prua" "sono" StatoPlur;
+StatoSing ::= "al" Percentuale "per cento" | "in sovraccarico" | "offline" | "instabile";
+StatoPlur ::= "al" Percentuale "per cento" | "in sovraccarico" | "offline" | "instabili";
+Percentuale ::= "dieci" | "venti" | "cinque" | "tre";
+
+Sistema ::= "gli scudi" | "il nucleo di dilitio" | "i sensori di prua"
+          | "il campo di contenimento" | "la rete neurale della nave";
+
+Battuta ::=
+    \\ "Comandante" ^ ":" FraseComando
+  | \\ "Ufficiale scientifico" ^ ":" FraseScienze
+  | \\ "Capo ingegnere" ^ ":" FraseIngegneria
+  | \\ "Medico di bordo" ^ ":" FraseMedico
+  | \\ "Ufficiale tattico" ^ ":" FraseTattico;
+
+FraseComando   ::= "Rapporto" ^ "," Sistema ^ "!"
+                 | "Opzioni, subito" ^ "!"
+                 | "Non abbiamo tempo per protocolli" ^ ".";
+
+FraseScienze   ::= "I sensori rilevano" Anomalia ^ "."
+                 | "Non corrisponde a nessun modello conosciuto" ^ ".";
+
+FraseIngegneria ::= Verbo Componente ^ "!"
+                  | "Non reggera'" Tempo ^ ".";
+
+FraseMedico    ::= "Ho tre feriti in infermeria" ^ "."
+                 | "Non e' il momento delle domande filosofiche" ^ ".";
+
+FraseTattico   ::= "Bersaglio agganciato" ^ "."
+                 | "Scudi al minimo" ^ ", non reggeranno un altro colpo" ^ ".";
+
+Anomalia ::= "una firma di energia sconosciuta" | "una distorsione temporale"
+           | "un pattern che si ripete ogni sette secondi";
+Verbo ::= "Sto ridirezionando" | "Sto isolando" | "Sto rinforzando" | "Sto bypassando";
+Componente ::= "i rele' plasma" | "il condotto di alimentazione"
+             | "i deflettori" | "l'array secondario";
+Tempo ::= "un altro minuto" | "due assalti" | "molto oltre";
+
+Chiusura ::= \\ "Comandante" ^ ":" ("Fatelo" ^ "." | "Tenete duro" ^ "."
+           | "Non abbiamo altra scelta" ^ ".");`,
+
+desc: `<h2>🖖 Crisi sul ponte di comando</h2>
+<p>Ispirata a <code>startrek.grm</code> e <code>sttng.grm</code> del corpus reale Polygen — qui riscritta e ampliata:
+un registro di bordo con allarme, un numero variabile di battute tra i membri dell'equipaggio, e una chiusura del comandante.</p>
+<p><strong>Punto delicato risolto:</strong> <code>SistemaStato</code> accoppia soggetto e verbo nello stesso simbolo
+(<code>"gli scudi" "sono" ...</code> vs <code>"il nucleo" "e'" ...</code>) invece di generarli da due riferimenti
+indipendenti — altrimenti singolare e plurale potrebbero non concordare.</p>
+<div class="tags">
+  <span class="tag">:= binding (nome nave coerente)</span>
+  <span class="tag">label: alternative accoppiate</span>
+  <span class="tag">(sub)+ ripetizione (battute)</span>
+  <span class="tag">\ capitalize</span>
+</div>`
+},
+
+// ───────────────────────────────────────────────────────────────────────────────
+{
+name: "10. Escalation helpdesk",
+src: `(* ESCALATION HELPDESK — porting.claude.js showcase
+ * Ispirata a: bofh.grm, compileline.grm (corpus reale Polygen)
+ * Costrutti: unfold >, deep-unfold >>...<<, pesi +/-, opzionale [...],
+ *            capitalize/concat
+ *)
+
+S ::= Ticket ^ "\\n\\n" Diagnosi ^ "\\n\\n" Risoluzione;
+
+Ticket ::= \\ "TICKET #" Numero ^ " —" Gravita ^ ":" Sintomo ^ ".";
+Numero ::= Cifra^Cifra^Cifra^Cifra;
+Cifra ::= 0|1|2|3|4|5|6|7|8|9;
+
+Gravita ::= ++ "bassa" | "media" | - "critica" | -- "apocalittica";
+
+Sintomo ::= "il computer" AzioneStrana
+          | "la stampante" AzioneStrana2
+          | "la rete" AzioneStrana3
+          | "l'applicazione" AzioneStrana4;
+
+AzioneStrana  ::= "emette un suono che nessuno aveva mai sentito prima"
+                 | "si riavvia da solo ogni" Intervallo
+                 | "mostra una schermata blu con scritto" ^ " \\"" Messaggio ^ "\\"";
+AzioneStrana2 ::= "stampa solo" [Colore] "geroglifici"
+                 | "chiede un vassoio che non esiste"
+                 | "si e' incastrata a meta' di" Documento;
+AzioneStrana3 ::= "funziona solo se" QualcunoParla
+                 | "e' lenta come" Paragone
+                 | "sparisce ogni volta che" QualcunoParla;
+AzioneStrana4 ::= "chiede una licenza per un prodotto mai installato"
+                 | "salva tutto tranne l'ultima modifica"
+                 | "apre" >(sette | dodici | trenta) "finestre identiche";
+
+Intervallo ::= "sette minuti" | "un'ora esatta" | "tre secondi";
+Colore ::= "verde" | "rosa" | "invisibile";
+Documento ::= "un contratto" | "il bilancio" | "una email urgente";
+QualcunoParla ::= "qualcuno accende il microonde" | "il capo entra in ufficio"
+                 | "si nomina ad alta voce il fornitore";
+Paragone ::= "un fax del secolo scorso" | "una lumaca in pensione"
+           | "il tempo che non passa mai";
+Messaggio ::= "non chiedere" | "colpa tua" | "riprova, forse";
+
+Diagnosi ::= >>
+  Causa ::= "un cavo" >(scollegato | invertito | mangiato dal gatto)
+          | "una configurazione" >(dimenticata | duplicata | corrotta)
+          | "un aggiornamento" >(mai installato | installato due volte | annullato a meta');
+  \\ "DIAGNOSI: probabilmente e' colpa di" Causa
+<<;
+
+Risoluzione ::= \\ "RISOLUZIONE:" (PassoRisoluzione ^ "," "poi")+ PassoRisoluzione ^ ".";
+PassoRisoluzione ::= "spegnere e riaccendere" | "provare da un altro account"
+                    | "controllare" Componente "e sperare"
+                    | "scalare al livello successivo"
+                    | "far finta di niente fino a domani";
+Componente ::= "i cavi" | "le impostazioni" | "la connessione" | "il firmware";`,
+
+desc: `<h2>🖥️ Escalation helpdesk</h2>
+<p>Ispirata a <code>bofh.grm</code> e <code>compileline.grm</code> del corpus reale — un ticket, una diagnosi
+(costruita con <em>deep unfold</em> <code>&gt;&gt;…&lt;&lt;</code> e una dichiarazione locale <code>Causa</code>),
+e una lista di passi di risoluzione di lunghezza variabile.</p>
+<p>La gravità del ticket usa i pesi (<code>++</code>/<code>-</code>/<code>--</code>): un ticket "critico" o
+"apocalittico" è raro quasi quanto nella realtà di un vero helpdesk.</p>
+<div class="tags">
+  <span class="tag">&gt; unfold</span>
+  <span class="tag">&gt;&gt;…&lt;&lt; deep unfold + decl locale</span>
+  <span class="tag">pesi ++/-/--</span>
+  <span class="tag">[…] opzionale</span>
+</div>`
+},
+
+// ───────────────────────────────────────────────────────────────────────────────
+{
+name: "11. Comizio politico",
+src: `(* COMIZIO POLITICO — porting.claude.js showcase
+ * Ispirata a: silvio.grm, girotondi.grm (corpus reale Polygen)
+ * Politico e partito sono di fantasia, nessun riferimento a persone reali.
+ * Costrutti: := binding (stesso nome in apertura e chiusura), (sub)+ ripetizione,
+ *            {} mobile su aggettivi simmetrici, pesi +/--
+ *)
+
+(* Nome e' := (memoizzato) invece di ::=: la stessa persona che apre il
+   comizio deve essere quella che lo chiude, non un'estrazione indipendente. *)
+Nome := NomePolitico;
+NomePolitico ::= "l'Onorevole Bragantini" | "il Senatore Malvezzi"
+               | "il Presidente Ortolani" | "il Candidato Ferramenti";
+
+S ::= Apertura ^ "\\n\\n" (Promessa ^ "\\n")+ Promessa ^ "\\n\\n" Chiusura;
+
+Apertura ::= \\ "Cittadini" ^ "," Nome "prende la parola" ^ ":" "\\n"
+             "\\"" ^ AprituraDiscorso;
+AprituraDiscorso ::= "Io vi capisco" ^ "."
+                    | "Nessuno ha mai lottato quanto me" ^ "."
+                    | "Questo paese merita di piu'" ^ ".";
+
+Promessa ::= \\ "Noi" Verbo Oggetto ^ "," "costi quel che costi" ^ "!";
+Verbo ::= "aboliremo" | "raddoppieremo" | "semplificheremo"
+        | "difenderemo" | "moderneremo";
+Oggetto ::= "le tasse" | "la burocrazia" | "il" {Agg1} {Agg2} "futuro"
+          | "la pensione" | "la dignita' nazionale";
+Agg1 ::= "vero" | "autentico" | "reale";
+Agg2 ::= "concreto" | "tangibile" | "immediato";
+
+Chiusura ::= "\\"" "\\n\\n"
+             \\ Nome "saluta tra" ReazioneFolla ^ ".";
+ReazioneFolla ::= ++ "applausi scroscianti"
+                 | "qualche fischio isolato"
+                 | -- "un silenzio imbarazzante";`,
+
+desc: `<h2>🎤 Comizio politico</h2>
+<p>Ispirata a <code>silvio.grm</code> e <code>girotondi.grm</code> del corpus reale — <strong>politico e partito
+sono interamente di fantasia</strong>, nessun riferimento a persone reali. Un'apertura, un numero variabile di
+promesse roboanti, una chiusura con la reazione della folla pesata (<code>++</code> applausi, <code>--</code> silenzio).</p>
+<p><code>Nome := NomePolitico</code> garantisce che sia lo stesso politico ad aprire e chiudere il comizio —
+prova a cambiarlo in <code>::=</code> nel sorgente per vedere la differenza.</p>
+<div class="tags">
+  <span class="tag">:= binding (identità coerente)</span>
+  <span class="tag">(sub)+ ripetizione (promesse)</span>
+  <span class="tag">{} mobile su aggettivi simmetrici</span>
+  <span class="tag">pesi ++/--</span>
+</div>`
+},
+
+// ───────────────────────────────────────────────────────────────────────────────
+{
+name: "12. Lezione di architettura software",
+src: `(* LEZIONE DI ARCHITETTURA SOFTWARE — porting.claude.js showcase
+ * Ispirata a: oop.grm, designpatterns.grm (corpus reale Polygen)
+ * Costrutti: := binding, deep-unfold >>...<< con dichiarazione locale,
+ *            unfold >, capitalize/concat
+ *)
+
+(* Classe e' := (memoizzato): la stessa classe deve ricorrere in apertura,
+   nelle domande e nella conclusione, non una nuova estrazione ogni volta. *)
+Classe := NomeClasse;
+NomeClasse ::= "OrderProcessorFactoryImpl" | "AbstractSingletonProxyBean"
+             | "UserServiceAdapterBridge" | "PaymentStrategyVisitorContext";
+
+S ::= Apertura ^ "\\n\\n" (Punto ^ "\\n\\n")+ Punto ^ "\\n\\n" Conclusione;
+
+Apertura ::= \\ "Oggi analizziamo la classe" Classe ^ "." "\\n"
+             "E' un ottimo esempio di" PatternDiModa ^ ".";
+PatternDiModa ::= "clean architecture esagonale" | "microservizi event-driven"
+                 | "programmazione reattiva funzionale" | "domain-driven design a strati";
+
+Punto ::= \\ Domanda "\\n" Risposta;
+Domanda ::= "Perche'" Classe "implementa" NumeroInterfacce "interfacce" ^ "?"
+          | "Cosa succede se rimuoviamo" Dipendenza ^ "?"
+          | "Come si testa" Classe "in isolamento" ^ "?";
+NumeroInterfacce ::= "tre" | "sette" | "dodici";
+Dipendenza ::= "il singleton globale" | "l'iniettore di dipendenze" | "la cache statica";
+
+Risposta ::= \\ >>
+  Giustificazione ::= "per garantire" >(estensibilita' | flessibilita' | disaccoppiamento)
+                    | "seguendo il principio di" >("singola responsabilita'" | "inversione delle dipendenze" | "sostituzione di Liskov");
+  Giustificazione ^ "," "anche se nessuno lo verifichera' mai davvero" ^ "."
+<<;
+
+Conclusione ::= \\ "In conclusione" ^ "," Classe "rimane un capolavoro di ingegneria" ^ ","
+                "o forse solo un" DefinizioneAlternativa ^ ".";
+DefinizioneAlternativa ::= "esperimento riuscito a meta'" | "monumento al copia-incolla"
+                          | "atto di fede collettiva";`,
+
+desc: `<h2>🏛️ Lezione di architettura software</h2>
+<p>Ispirata a <code>oop.grm</code> e <code>designpatterns.grm</code> del corpus reale — satira del gergo da
+conferenza tech. Un numero variabile di domande-e-risposte, ciascuna risposta costruita con un <em>deep unfold</em>
+che contiene la propria dichiarazione locale <code>Giustificazione</code>.</p>
+<p><code>Classe := NomeClasse</code> assicura che la stessa classe (con lo stesso nome improbabile) ricorra in
+apertura, nelle domande e nella conclusione.</p>
+<div class="tags">
+  <span class="tag">:= binding</span>
+  <span class="tag">&gt;&gt;…&lt;&lt; deep unfold + decl locale</span>
+  <span class="tag">&gt; unfold</span>
+  <span class="tag">(sub)+ ripetizione</span>
+</div>`
+},
+
+// ───────────────────────────────────────────────────────────────────────────────
+{
+name: "13. Recensione di mostra d'arte",
+src: `(* RECENSIONE DI MOSTRA D'ARTE — porting.claude.js showcase
+ * Ispirata a: artex.grm (corpus reale Polygen)
+ * Costrutti: := binding, unfold >, capitalize/concat
+ *)
+
+Artista := NomeArtista;
+NomeArtista ::= "Bianca Voltremi" | "Cesare Adornati"
+              | "Nera Ostrowski" | "Fulvio Ghirlandari";
+
+S ::= Titolo ^ "\\n\\n" Corpo;
+
+Titolo ::= \\ "\\"" ^ TitoloOpera ^ "\\"" "\\n" Artista ^ "," Sede ^ "," Anno;
+TitoloOpera ::= "Frammenti di Silenzio" | "L'Assenza Necessaria"
+              | "Superfici Interrotte" | "Geometrie del Dubbio";
+Sede ::= "Galleria Meridiana" ^ "," "Torino"
+       | "Spazio Ortica" ^ "," "Milano"
+       | "Fondazione Cardine" ^ "," "Bologna";
+Anno ::= "2019" | "2021" | "2023";
+
+Corpo ::= \\ Frase1 Frase2 Frase3;
+
+Frase1 ::= "Il lavoro di" Artista "indaga" TemaArte ^ ","
+           "attraverso" Medium ^ ".";
+TemaArte ::= "la memoria collettiva" | "il rapporto tra corpo e spazio"
+           | "la dissoluzione dell'identita'" | "il tempo sospeso dell'attesa";
+Medium ::= "installazioni site-specific" | "fotografie di grande formato"
+         | "sculture in materiali poveri" | "video a canale singolo";
+
+Frase2 ::= "Ogni" ElementoOpera "diventa" MetaforaArte ^ ","
+           "restituendo allo spettatore" EffettoOpera ^ ".";
+ElementoOpera ::= "gesto" | "vuoto" | "frammento" | "residuo";
+MetaforaArte ::= "una domanda irrisolta" | "un archivio silenzioso"
+               | "una ferita composta" | "un paesaggio interiore";
+EffettoOpera ::= "un senso di sospensione" | "la possibilita' di un altro sguardo"
+               | "una vertigine misurata" | "una quiete inquieta";
+
+Frase3 ::= "E' una mostra che" >(non si dimentica | resta addosso | continua a interrogare)
+           "molto oltre la sala espositiva" ^ ".";`,
+
+desc: `<h2>🖼️ Recensione di mostra d'arte</h2>
+<p>Ispirata a <code>artex.grm</code> del corpus reale — il generatore di didascalie da comunicato stampa per
+gallerie d'arte contemporanea. Qui riscritta come recensione in tre frasi coerenti: tema, effetto sullo spettatore,
+giudizio finale.</p>
+<p><code>Artista := NomeArtista</code> mantiene lo stesso nome fra titolo e corpo del testo — lo stesso meccanismo
+usato per emettere la nostra diagnosi sul bug del <code>&lt;br&gt;</code> capitalizzato trovato proprio in
+<code>artex.grm</code> durante la verifica contro l'OCaml originale (vedi il dossier di porting).</p>
+<div class="tags">
+  <span class="tag">:= binding</span>
+  <span class="tag">&gt; unfold</span>
+  <span class="tag">\ capitalize</span>
+  <span class="tag">^ concat</span>
+</div>`
+},
+
+// ───────────────────────────────────────────────────────────────────────────────
+{
+name: "14. Abstract accademico",
+src: `(* ABSTRACT ACCADEMICO — porting.claude.js showcase
+ * Ispirata a: paper.grm, designpatterns.grm (corpus reale Polygen)
+ * Costrutti: := binding, {} mobile su aggettivi simmetrici, pesi +/--,
+ *            capitalize/concat
+ *)
+
+Metodo := NomeMetodo;
+NomeMetodo ::= "GraphFusionNet" | "SparseAttentionTransformer"
+             | "BayesianDriftEstimator" | "ContrastivePriorAligner";
+
+S ::= \\ "Titolo:" NomeArticolo ^ "\\n\\n" Abstract;
+
+NomeArticolo ::= Metodo ^ ":" "un approccio" {Agg1} {Agg2} "per" Problema
+                | Metodo ^ ":" "verso" Problema "senza supervisione"
+                | Metodo ^ ":" "ripensare" Problema "tramite" Tecnica;
+Agg1 ::= "scalabile" | "robusto" | "efficiente";
+Agg2 ::= "interpretabile" | "leggero" | "modulare";
+Problema ::= "la generalizzazione fuori distribuzione" | "l'allineamento tra modalita'"
+           | "la stima dell'incertezza" | "il trasferimento a basso numero di esempi";
+Tecnica ::= "l'apprendimento contrastivo" | "l'attenzione sparsa" | "la regolarizzazione bayesiana";
+
+Abstract ::= \\ FraseProblema FraseMetodo FraseRisultato FraseHedge;
+
+FraseProblema ::= "Nonostante i progressi recenti" ^ "," Problema "rimane" ApertoQuanto ^ ".";
+ApertoQuanto ::= "un problema aperto" | "largamente irrisolto"
+                | "sorprendentemente sotto-esplorato";
+
+FraseMetodo ::= "Proponiamo" Metodo ^ "," "un framework che combina" Tecnica
+                "con" TecnicaSecondaria ^ ".";
+TecnicaSecondaria ::= "un meccanismo di gating appreso" | "una funzione di perdita composita"
+                     | "un prior strutturato sui parametri";
+
+FraseRisultato ::= "Su" NumeroDataset "benchmark" ^ "," Metodo
+                    ("supera" | "eguaglia") "lo stato dell'arte" DiMargine ^ ".";
+NumeroDataset ::= "tre" | "cinque" | "sette" | "dodici";
+DiMargine ::= "con un margine significativo" | "pur usando meno parametri"
+            | "senza fine-tuning aggiuntivo";
+
+FraseHedge ::= ++ "Riteniamo che questo apra la strada a lavori futuri su" DirezioneFutura ^ "."
+              | -- "Va detto che i risultati potrebbero non generalizzare oltre" LimitazioneDominio ^ ".";
+DirezioneFutura ::= "l'apprendimento continuo" | "l'efficienza energetica dei modelli"
+                   | "l'interpretabilita' meccanicistica";
+LimitazioneDominio ::= "i domini qui considerati" | "dataset con distribuzioni simili"
+                      | "il regime a basse risorse testato";`,
+
+desc: `<h2>📄 Abstract accademico</h2>
+<p>Ispirata a <code>paper.grm</code> e <code>designpatterns.grm</code> del corpus reale — il classico generatore
+di abstract da conferenza ML, con problema, metodo, risultato e una nota finale <em>hedged</em>
+(<code>++</code> ottimista, <code>--</code> onesta sui limiti).</p>
+<p><code>Metodo := NomeMetodo</code> garantisce che l'acronimo del metodo proposto sia lo stesso nel titolo e in
+tutto il corpo — un vero paper userebbe lo stesso trucco per non contraddirsi da solo.</p>
+<div class="tags">
+  <span class="tag">:= binding</span>
+  <span class="tag">{} mobile su aggettivi simmetrici</span>
+  <span class="tag">pesi ++/--</span>
+  <span class="tag">^ concat</span>
+</div>`
+},
+
+// ───────────────────────────────────────────────────────────────────────────────
+{
+name: "15. Sitcom assurda",
+src: `(* SITCOM ASSURDA — porting.claude.js showcase
+ * Ispirata a: chicoypaco.grm (corpus reale Polygen)
+ * Costrutti: (sub)+ annidato (numero puntata assurdo), := binding,
+ *            pesi +/--, capitalize/concat
+ *)
+
+Numero ::= ((Cifra^)+)+;
+Cifra ::= 0|1|2|3|4|5|6|7|8|9;
+
+NomeA := PersonaggioA;
+NomeB := PersonaggioB;
+PersonaggioA ::= "Ubaldo" | "Learco" | "Fringuello";
+PersonaggioB ::= "Ademaro" | "Brancaleone" | "Sozzo";
+
+S ::= \\ "Puntata numero" Numero ^ "." "\\n\\n"
+      Battuta1 "\\n" Battuta2 "\\n" Battuta1b "\\n" Finale;
+
+Battuta1  ::= \\ NomeA ^ ":" FraseAssurda1;
+Battuta2  ::= \\ NomeB ^ ":" FraseAssurda2;
+Battuta1b ::= \\ NomeA ^ ":" FraseAssurda3;
+
+FraseAssurda1 ::= "Hai presente" Oggetto ^ "?"
+                 | "Ieri ho parlato con" Oggetto ^ "."
+                 | "Non ho chiuso occhio per colpa di" Oggetto ^ ".";
+FraseAssurda2 ::= "No" ^ "." | "Perche' me lo chiedi sempre" ^ "?" | "Non voglio saperlo" ^ ".";
+FraseAssurda3 ::= "Io si'" ^ "." Rivelazione ^ "." | "Lascia perdere" ^ "." | ConclusioneAssurda ^ ".";
+
+Oggetto ::= "il tostapane di nostro cugino" | "un armadio parlante"
+          | "la vicina del terzo piano" | "un vaso Ming falso";
+Rivelazione ::= "Domani devo restituirlo" | "Non era mai successo prima"
+              | "Nessuno ci credera'";
+ConclusioneAssurda ::= "E' cosi' che va il mondo" | "Non e' nel mio destino"
+                      | "Meglio non pensarci";
+
+Finale ::= ++ "[applausi registrati]" | "[silenzio imbarazzato]"
+         | -- "[si sente un clacson in lontananza]";`,
+
+desc: `<h2>📺 Sitcom assurda</h2>
+<p>Ispirata a <code>chicoypaco.grm</code> del corpus reale, che contiene la battuta di grammatica preferita
+scoperta durante i test: <code>Numero ::= ((Cifra^)+)+</code> — una ripetizione <em>annidata dentro un'altra
+ripetizione</em>, apposta per generare numeri di puntata assurdi (nella grammatica originale arriva a
+"95159815ª puntata"). Qui riproposta identica, con due personaggi che bisticciano su un oggetto assurdo.</p>
+<p>Prova a rigenerare più volte: il numero di puntata a volte è una sola cifra, a volte nove.</p>
+<div class="tags">
+  <span class="tag">(sub)+ annidato</span>
+  <span class="tag">:= binding (personaggi coerenti)</span>
+  <span class="tag">pesi ++/--</span>
+  <span class="tag">\ capitalize</span>
+</div>`
+},
+
+// ───────────────────────────────────────────────────────────────────────────────
+{
+name: "16. Koan zen contemporaneo",
+src: `(* KOAN ZEN CONTEMPORANEO — porting.claude.js showcase
+ * Ispirata a: real-zen.grm (gia' nel corpus di test), blues.grm (corpus reale Polygen)
+ * Costrutti: {} mobile su immagini simmetriche, epsilon (_),
+ *            capitalize/concat
+ *)
+
+S ::= Koan;
+
+Koan ::= \\ Domanda "\\n" Risposta;
+
+Domanda ::= "Un discepolo chiese" ^ ":" "\\"" ^ DomandaTesto ^ "\\"";
+DomandaTesto ::= "Cos'e'" Concetto ^ "?"
+                | "Dove va" Concetto "quando" Concetto2 "finisce" ^ "?"
+                | "Come si" Verbo Concetto "senza" Verbo2 ^ "?";
+Concetto ::= "il vuoto" | "il suono di un dato non letto"
+           | "il confine tra domanda e risposta" | "il silenzio del processo che dorme";
+Concetto2 ::= "la memoria" | "il ciclo" | "l'eco";
+Verbo ::= "afferra" | "libera" | "nomina";
+Verbo2 ::= "afferrarlo" | "nominarlo" | "perderlo";
+
+Risposta ::= \\ "Il maestro rispose" ^ ":" "\\"" ^ RispostaTesto ^ "\\"";
+(* alternanza esplicita invece di {} mobile: garantisce sempre un punto e
+   virgola fra le due immagini, indipendentemente da quale viene per prima *)
+RispostaTesto ::= (ImmagineA ^ ";" ImmagineB | ImmagineB ^ ";" ImmagineA) ^ "."
+                 | "Chi pone la domanda" ^ "," "e' gia'" Risultato ^ "."
+                 | Silenzio;
+ImmagineA ::= "la goccia non cerca l'oceano" | "il ramo non invidia la radice"
+            | "la lampada non teme il buio";
+ImmagineB ::= "l'oceano non rifiuta la goccia" | "la radice non giudica il ramo"
+            | "il buio non spegne la lampada";
+Risultato ::= "la risposta" | "oltre la domanda" | "cio' che cercava";
+Silenzio ::= _ | "...";`,
+
+desc: `<h2>☯️ Koan zen contemporaneo</h2>
+<p>Ispirata al tono minimalista di <code>real-zen.grm</code> (già nel corpus di test golden) e
+<code>blues.grm</code> del corpus reale — una domanda paradossale e una risposta che a volte è un'immagine
+speculare, a volte è pura assenza.</p>
+<p><code>Silenzio ::= _ | "..."</code> è l'unico posto in questa vetrina dove l'<strong>epsilon</strong>
+(produzione esplicitamente vuota) è usato come scelta artistica, non solo come caso limite tecnico: a volte il
+maestro risponde con un paio di virgolette vuote.</p>
+<div class="tags">
+  <span class="tag">_ epsilon</span>
+  <span class="tag">alternanza esplicita invece di {} mobile</span>
+  <span class="tag">\ capitalize</span>
+  <span class="tag">^ concat</span>
+</div>`
+},
+
+// ───────────────────────────────────────────────────────────────────────────────
+{
+name: "17. Postmortem incidente DevOps",
+src: `(* POSTMORTEM INCIDENTE DEVOPS — porting.claude.js showcase
+ * Ispirata a: rcstalk.grm, compileline.grm, manager.grm (corpus reale Polygen)
+ * Costrutti: (sub)+ ripetizione (timeline e azioni), unfold >,
+ *            pesi +/---, capitalize/concat
+ *)
+
+S ::= \\ "POSTMORTEM INCIDENTE #" Numero ^ "\\n"
+      "Severita':" Severita ^ "\\n\\n"
+      "Timeline:" "\\n" (EventoTimeline ^ "\\n")+ EventoTimeline ^ "\\n\\n"
+      "Causa radice:" CausaRadice ^ "\\n\\n"
+      "Azioni correttive:" "\\n" (Azione ^ "\\n")+ Azione;
+
+Numero ::= Cifra^Cifra^Cifra^Cifra;
+Cifra ::= 0|1|2|3|4|5|6|7|8|9;
+
+Severita ::= ++ "SEV-3 (minore)" | "SEV-2 (significativo)"
+           | -- "SEV-1 (critico)" | --- "SEV-0 (totale)";
+
+EventoTimeline ::= Ora ^ " —" Evento;
+Ora ::= "00:0" ^ Cifra | "0" ^ Cifra ^ ":30";
+Evento ::= "viene rilevato un aumento della latenza" | "un alert automatico si attiva"
+         | "un ingegnere di guardia viene contattato" | "il traffico viene reindirizzato"
+         | "il servizio torna a rispondere" | "si conferma la stabilizzazione";
+
+(* StatoA/StatoB restano in ordine fisso: StatoB presuppone testualmente
+   StatoA ("combinata con...", "aggravata da..."), quindi non vanno resi
+   mobili con {} — a differenza di due aggettivi davvero intercambiabili. *)
+CausaRadice ::= StatoA StatoB "su" Componente
+              | "una" Cambiamento "non revisionata su" Componente
+              | Componente "che" >("supera un limite mai testato" | "dipende da un servizio gia' guasto");
+StatoA ::= "una race condition" | "un timeout troppo aggressivo" | "una cache non invalidata";
+StatoB ::= "combinata con traffico anomalo" | "aggravata da un retry storm"
+         | "amplificata da un rollout parziale";
+Cambiamento ::= "configurazione" | "migrazione" | "dipendenza";
+Componente ::= "il servizio di autenticazione" | "il bilanciatore di carico"
+             | "la coda di messaggi" | "il database primario";
+
+Azione ::= "aggiungere un test di regressione per" Componente
+         | "introdurre un circuit breaker su" Componente
+         | "documentare la procedura di rollback"
+         | "programmare un game day per simulare l'incidente";`,
+
+desc: `<h2>🚨 Postmortem incidente DevOps</h2>
+<p>Ispirata a <code>rcstalk.grm</code>, <code>compileline.grm</code> e <code>manager.grm</code> del corpus reale —
+un report d'incidente con severità pesata, una timeline di lunghezza variabile e una lista di azioni correttive,
+sempre la stessa lunghezza minima ma potenzialmente molto più lunga.</p>
+<p><strong>Nota di design:</strong> <code>StatoA</code> e <code>StatoB</code> restano in ordine fisso (niente
+<code>{}</code> mobile) perché la seconda clausola presuppone testualmente la prima ("combinata con…",
+"aggravata da…") — scambiarle produrrebbe una frase che non si legge più come una frase.</p>
+<div class="tags">
+  <span class="tag">(sub)+ ripetizione (timeline, azioni)</span>
+  <span class="tag">&gt; unfold</span>
+  <span class="tag">pesi ++/---</span>
+  <span class="tag">^ concat</span>
+</div>`
+}
 ]; // fine array grammars
 
 // ── LOGICA UI ─────────────────────────────────────────────────────────────────

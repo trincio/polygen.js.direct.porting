@@ -1,0 +1,32 @@
+(* KOAN ZEN CONTEMPORANEO — porting.claude.js showcase
+ * Ispirata a: real-zen.grm (gia' nel corpus di test), blues.grm (corpus reale Polygen)
+ * Costrutti: {} mobile su immagini simmetriche, epsilon (_),
+ *            capitalize/concat
+ *)
+
+S ::= Koan;
+
+Koan ::= \ Domanda "\n" Risposta;
+
+Domanda ::= "Un discepolo chiese" ^ ":" "\"" ^ DomandaTesto ^ "\"";
+DomandaTesto ::= "Cos'e'" Concetto ^ "?"
+                | "Dove va" Concetto "quando" Concetto2 "finisce" ^ "?"
+                | "Come si" Verbo Concetto "senza" Verbo2 ^ "?";
+Concetto ::= "il vuoto" | "il suono di un dato non letto"
+           | "il confine tra domanda e risposta" | "il silenzio del processo che dorme";
+Concetto2 ::= "la memoria" | "il ciclo" | "l'eco";
+Verbo ::= "afferra" | "libera" | "nomina";
+Verbo2 ::= "afferrarlo" | "nominarlo" | "perderlo";
+
+Risposta ::= \ "Il maestro rispose" ^ ":" "\"" ^ RispostaTesto ^ "\"";
+(* alternanza esplicita invece di {} mobile: garantisce sempre un punto e
+   virgola fra le due immagini, indipendentemente da quale viene per prima *)
+RispostaTesto ::= (ImmagineA ^ ";" ImmagineB | ImmagineB ^ ";" ImmagineA) ^ "."
+                 | "Chi pone la domanda" ^ "," "e' gia'" Risultato ^ "."
+                 | Silenzio;
+ImmagineA ::= "la goccia non cerca l'oceano" | "il ramo non invidia la radice"
+            | "la lampada non teme il buio";
+ImmagineB ::= "l'oceano non rifiuta la goccia" | "la radice non giudica il ramo"
+            | "il buio non spegne la lampada";
+Risultato ::= "la risposta" | "oltre la domanda" | "cio' che cercava";
+Silenzio ::= _ | "...";

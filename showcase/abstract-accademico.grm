@@ -1,0 +1,44 @@
+(* ABSTRACT ACCADEMICO — porting.claude.js showcase
+ * Ispirata a: paper.grm, designpatterns.grm (corpus reale Polygen)
+ * Costrutti: := binding, {} mobile su aggettivi simmetrici, pesi +/--,
+ *            capitalize/concat
+ *)
+
+Metodo := NomeMetodo;
+NomeMetodo ::= "GraphFusionNet" | "SparseAttentionTransformer"
+             | "BayesianDriftEstimator" | "ContrastivePriorAligner";
+
+S ::= \ "Titolo:" NomeArticolo ^ "\n\n" Abstract;
+
+NomeArticolo ::= Metodo ^ ":" "un approccio" {Agg1} {Agg2} "per" Problema
+                | Metodo ^ ":" "verso" Problema "senza supervisione"
+                | Metodo ^ ":" "ripensare" Problema "tramite" Tecnica;
+Agg1 ::= "scalabile" | "robusto" | "efficiente";
+Agg2 ::= "interpretabile" | "leggero" | "modulare";
+Problema ::= "la generalizzazione fuori distribuzione" | "l'allineamento tra modalita'"
+           | "la stima dell'incertezza" | "il trasferimento a basso numero di esempi";
+Tecnica ::= "l'apprendimento contrastivo" | "l'attenzione sparsa" | "la regolarizzazione bayesiana";
+
+Abstract ::= \ FraseProblema FraseMetodo FraseRisultato FraseHedge;
+
+FraseProblema ::= "Nonostante i progressi recenti" ^ "," Problema "rimane" ApertoQuanto ^ ".";
+ApertoQuanto ::= "un problema aperto" | "largamente irrisolto"
+                | "sorprendentemente sotto-esplorato";
+
+FraseMetodo ::= "Proponiamo" Metodo ^ "," "un framework che combina" Tecnica
+                "con" TecnicaSecondaria ^ ".";
+TecnicaSecondaria ::= "un meccanismo di gating appreso" | "una funzione di perdita composita"
+                     | "un prior strutturato sui parametri";
+
+FraseRisultato ::= "Su" NumeroDataset "benchmark" ^ "," Metodo
+                    ("supera" | "eguaglia") "lo stato dell'arte" DiMargine ^ ".";
+NumeroDataset ::= "tre" | "cinque" | "sette" | "dodici";
+DiMargine ::= "con un margine significativo" | "pur usando meno parametri"
+            | "senza fine-tuning aggiuntivo";
+
+FraseHedge ::= ++ "Riteniamo che questo apra la strada a lavori futuri su" DirezioneFutura ^ "."
+              | -- "Va detto che i risultati potrebbero non generalizzare oltre" LimitazioneDominio ^ ".";
+DirezioneFutura ::= "l'apprendimento continuo" | "l'efficienza energetica dei modelli"
+                   | "l'interpretabilita' meccanicistica";
+LimitazioneDominio ::= "i domini qui considerati" | "dataset con distribuzioni simili"
+                      | "il regime a basse risorse testato";

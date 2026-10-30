@@ -1,0 +1,41 @@
+(* POSTMORTEM INCIDENTE DEVOPS — porting.claude.js showcase
+ * Ispirata a: rcstalk.grm, compileline.grm, manager.grm (corpus reale Polygen)
+ * Costrutti: (sub)+ ripetizione (timeline e azioni), unfold >,
+ *            pesi +/---, capitalize/concat
+ *)
+
+S ::= \ "POSTMORTEM INCIDENTE #" Numero ^ "\n"
+      "Severita':" Severita ^ "\n\n"
+      "Timeline:" "\n" (EventoTimeline ^ "\n")+ EventoTimeline ^ "\n\n"
+      "Causa radice:" CausaRadice ^ "\n\n"
+      "Azioni correttive:" "\n" (Azione ^ "\n")+ Azione;
+
+Numero ::= Cifra^Cifra^Cifra^Cifra;
+Cifra ::= 0|1|2|3|4|5|6|7|8|9;
+
+Severita ::= ++ "SEV-3 (minore)" | "SEV-2 (significativo)"
+           | -- "SEV-1 (critico)" | --- "SEV-0 (totale)";
+
+EventoTimeline ::= Ora ^ " —" Evento;
+Ora ::= "00:0" ^ Cifra | "0" ^ Cifra ^ ":30";
+Evento ::= "viene rilevato un aumento della latenza" | "un alert automatico si attiva"
+         | "un ingegnere di guardia viene contattato" | "il traffico viene reindirizzato"
+         | "il servizio torna a rispondere" | "si conferma la stabilizzazione";
+
+(* StatoA/StatoB restano in ordine fisso: StatoB presuppone testualmente
+   StatoA ("combinata con...", "aggravata da..."), quindi non vanno resi
+   mobili con {} — a differenza di due aggettivi davvero intercambiabili. *)
+CausaRadice ::= StatoA StatoB "su" Componente
+              | "una" Cambiamento "non revisionata su" Componente
+              | Componente "che" >("supera un limite mai testato" | "dipende da un servizio gia' guasto");
+StatoA ::= "una race condition" | "un timeout troppo aggressivo" | "una cache non invalidata";
+StatoB ::= "combinata con traffico anomalo" | "aggravata da un retry storm"
+         | "amplificata da un rollout parziale";
+Cambiamento ::= "configurazione" | "migrazione" | "dipendenza";
+Componente ::= "il servizio di autenticazione" | "il bilanciatore di carico"
+             | "la coda di messaggi" | "il database primario";
+
+Azione ::= "aggiungere un test di regressione per" Componente
+         | "introdurre un circuit breaker su" Componente
+         | "documentare la procedura di rollback"
+         | "programmare un game day per simulare l'incidente";

@@ -1,0 +1,36 @@
+(* LEZIONE DI ARCHITETTURA SOFTWARE — porting.claude.js showcase
+ * Ispirata a: oop.grm, designpatterns.grm (corpus reale Polygen)
+ * Costrutti: := binding, deep-unfold >>...<< con dichiarazione locale,
+ *            unfold >, capitalize/concat
+ *)
+
+(* Classe e' := (memoizzato): la stessa classe deve ricorrere in apertura,
+   nelle domande e nella conclusione, non una nuova estrazione ogni volta. *)
+Classe := NomeClasse;
+NomeClasse ::= "OrderProcessorFactoryImpl" | "AbstractSingletonProxyBean"
+             | "UserServiceAdapterBridge" | "PaymentStrategyVisitorContext";
+
+S ::= Apertura ^ "\n\n" (Punto ^ "\n\n")+ Punto ^ "\n\n" Conclusione;
+
+Apertura ::= \ "Oggi analizziamo la classe" Classe ^ "." "\n"
+             "E' un ottimo esempio di" PatternDiModa ^ ".";
+PatternDiModa ::= "clean architecture esagonale" | "microservizi event-driven"
+                 | "programmazione reattiva funzionale" | "domain-driven design a strati";
+
+Punto ::= \ Domanda "\n" Risposta;
+Domanda ::= "Perche'" Classe "implementa" NumeroInterfacce "interfacce" ^ "?"
+          | "Cosa succede se rimuoviamo" Dipendenza ^ "?"
+          | "Come si testa" Classe "in isolamento" ^ "?";
+NumeroInterfacce ::= "tre" | "sette" | "dodici";
+Dipendenza ::= "il singleton globale" | "l'iniettore di dipendenze" | "la cache statica";
+
+Risposta ::= \ >>
+  Giustificazione ::= "per garantire" >(estensibilita' | flessibilita' | disaccoppiamento)
+                    | "seguendo il principio di" >("singola responsabilita'" | "inversione delle dipendenze" | "sostituzione di Liskov");
+  Giustificazione ^ "," "anche se nessuno lo verifichera' mai davvero" ^ "."
+<<;
+
+Conclusione ::= \ "In conclusione" ^ "," Classe "rimane un capolavoro di ingegneria" ^ ","
+                "o forse solo un" DefinizioneAlternativa ^ ".";
+DefinizioneAlternativa ::= "esperimento riuscito a meta'" | "monumento al copia-incolla"
+                          | "atto di fede collettiva";

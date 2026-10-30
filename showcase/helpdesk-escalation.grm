@@ -1,0 +1,54 @@
+(* ESCALATION HELPDESK — porting.claude.js showcase
+ * Ispirata a: bofh.grm, compileline.grm (corpus reale Polygen)
+ * Costrutti: unfold >, deep-unfold >>...<<, pesi +/-, opzionale [...],
+ *            capitalize/concat
+ *)
+
+S ::= Ticket ^ "\n\n" Diagnosi ^ "\n\n" Risoluzione;
+
+Ticket ::= \ "TICKET #" Numero ^ " —" Gravita ^ ":" Sintomo ^ ".";
+Numero ::= Cifra^Cifra^Cifra^Cifra;
+Cifra ::= 0|1|2|3|4|5|6|7|8|9;
+
+Gravita ::= ++ "bassa" | "media" | - "critica" | -- "apocalittica";
+
+Sintomo ::= "il computer" AzioneStrana
+          | "la stampante" AzioneStrana2
+          | "la rete" AzioneStrana3
+          | "l'applicazione" AzioneStrana4;
+
+AzioneStrana  ::= "emette un suono che nessuno aveva mai sentito prima"
+                 | "si riavvia da solo ogni" Intervallo
+                 | "mostra una schermata blu con scritto" ^ " \"" Messaggio ^ "\"";
+AzioneStrana2 ::= "stampa solo" [Colore] "geroglifici"
+                 | "chiede un vassoio che non esiste"
+                 | "si e' incastrata a meta' di" Documento;
+AzioneStrana3 ::= "funziona solo se" QualcunoParla
+                 | "e' lenta come" Paragone
+                 | "sparisce ogni volta che" QualcunoParla;
+AzioneStrana4 ::= "chiede una licenza per un prodotto mai installato"
+                 | "salva tutto tranne l'ultima modifica"
+                 | "apre" >(sette | dodici | trenta) "finestre identiche";
+
+Intervallo ::= "sette minuti" | "un'ora esatta" | "tre secondi";
+Colore ::= "verde" | "rosa" | "invisibile";
+Documento ::= "un contratto" | "il bilancio" | "una email urgente";
+QualcunoParla ::= "qualcuno accende il microonde" | "il capo entra in ufficio"
+                 | "si nomina ad alta voce il fornitore";
+Paragone ::= "un fax del secolo scorso" | "una lumaca in pensione"
+           | "il tempo che non passa mai";
+Messaggio ::= "non chiedere" | "colpa tua" | "riprova, forse";
+
+Diagnosi ::= >>
+  Causa ::= "un cavo" >(scollegato | invertito | mangiato dal gatto)
+          | "una configurazione" >(dimenticata | duplicata | corrotta)
+          | "un aggiornamento" >(mai installato | installato due volte | annullato a meta');
+  \ "DIAGNOSI: probabilmente e' colpa di" Causa
+<<;
+
+Risoluzione ::= \ "RISOLUZIONE:" (PassoRisoluzione ^ "," "poi")+ PassoRisoluzione ^ ".";
+PassoRisoluzione ::= "spegnere e riaccendere" | "provare da un altro account"
+                    | "controllare" Componente "e sperare"
+                    | "scalare al livello successivo"
+                    | "far finta di niente fino a domani";
+Componente ::= "i cavi" | "le impostazioni" | "la connessione" | "il firmware";

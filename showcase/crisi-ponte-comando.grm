@@ -1,0 +1,70 @@
+(* CRISI SUL PONTE DI COMANDO — porting.claude.js showcase
+ * Ispirata a: startrek.grm, sttng.grm (corpus reale Polygen)
+ * Costrutti: := binding, label: alternative accoppiate, {} mobile,
+ *            (sub)+ ripetizione, capitalize/concat
+ *)
+
+S ::= (
+  Nave := NomeNave;
+  "REGISTRO DI BORDO" ^ " —" Nave ^ "," "data stellare" Stardate ^ "." "\n\n"
+  Allarme "\n"
+  (Battuta ^ "\n")+
+  Battuta ^ "\n\n"
+  Chiusura
+);
+
+NomeNave ::= "USS Meridian" | "USS Custode" | "USS Vertice"
+           | "Stazione Kepler-9" | "Incrociatore Solstizio";
+
+Stardate ::= Cifra^Cifra^Cifra^Cifra^"."^Cifra;
+Cifra ::= 0|1|2|3|4|5|6|7|8|9;
+
+Allarme ::= \ TipoAllarme ^ ":" SistemaStato ^ "!";
+TipoAllarme ::= "allarme rosso" | "allarme giallo" | "condizione critica";
+
+(* soggetto e verbo accoppiati nello stesso simbolo: niente disaccordo
+   singolare/plurale, a differenza di un riferimento incrociato via label *)
+SistemaStato ::= "il nucleo di dilitio" "e'" StatoSing
+                | "il campo di contenimento" "e'" StatoSing
+                | "la rete neurale della nave" "e'" StatoSing
+                | "gli scudi" "sono" StatoPlur
+                | "i sensori di prua" "sono" StatoPlur;
+StatoSing ::= "al" Percentuale "per cento" | "in sovraccarico" | "offline" | "instabile";
+StatoPlur ::= "al" Percentuale "per cento" | "in sovraccarico" | "offline" | "instabili";
+Percentuale ::= "dieci" | "venti" | "cinque" | "tre";
+
+Sistema ::= "gli scudi" | "il nucleo di dilitio" | "i sensori di prua"
+          | "il campo di contenimento" | "la rete neurale della nave";
+
+Battuta ::=
+    \ "Comandante" ^ ":" FraseComando
+  | \ "Ufficiale scientifico" ^ ":" FraseScienze
+  | \ "Capo ingegnere" ^ ":" FraseIngegneria
+  | \ "Medico di bordo" ^ ":" FraseMedico
+  | \ "Ufficiale tattico" ^ ":" FraseTattico;
+
+FraseComando   ::= "Rapporto" ^ "," Sistema ^ "!"
+                 | "Opzioni, subito" ^ "!"
+                 | "Non abbiamo tempo per protocolli" ^ ".";
+
+FraseScienze   ::= "I sensori rilevano" Anomalia ^ "."
+                 | "Non corrisponde a nessun modello conosciuto" ^ ".";
+
+FraseIngegneria ::= Verbo Componente ^ "!"
+                  | "Non reggera'" Tempo ^ ".";
+
+FraseMedico    ::= "Ho tre feriti in infermeria" ^ "."
+                 | "Non e' il momento delle domande filosofiche" ^ ".";
+
+FraseTattico   ::= "Bersaglio agganciato" ^ "."
+                 | "Scudi al minimo" ^ ", non reggeranno un altro colpo" ^ ".";
+
+Anomalia ::= "una firma di energia sconosciuta" | "una distorsione temporale"
+           | "un pattern che si ripete ogni sette secondi";
+Verbo ::= "Sto ridirezionando" | "Sto isolando" | "Sto rinforzando" | "Sto bypassando";
+Componente ::= "i rele' plasma" | "il condotto di alimentazione"
+             | "i deflettori" | "l'array secondario";
+Tempo ::= "un altro minuto" | "due assalti" | "molto oltre";
+
+Chiusura ::= \ "Comandante" ^ ":" ("Fatelo" ^ "." | "Tenete duro" ^ "."
+           | "Non abbiamo altra scelta" ^ ".");

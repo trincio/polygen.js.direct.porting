@@ -1,0 +1,36 @@
+(* SITCOM ASSURDA — porting.claude.js showcase
+ * Ispirata a: chicoypaco.grm (corpus reale Polygen)
+ * Costrutti: (sub)+ annidato (numero puntata assurdo), := binding,
+ *            pesi +/--, capitalize/concat
+ *)
+
+Numero ::= ((Cifra^)+)+;
+Cifra ::= 0|1|2|3|4|5|6|7|8|9;
+
+NomeA := PersonaggioA;
+NomeB := PersonaggioB;
+PersonaggioA ::= "Ubaldo" | "Learco" | "Fringuello";
+PersonaggioB ::= "Ademaro" | "Brancaleone" | "Sozzo";
+
+S ::= \ "Puntata numero" Numero ^ "." "\n\n"
+      Battuta1 "\n" Battuta2 "\n" Battuta1b "\n" Finale;
+
+Battuta1  ::= \ NomeA ^ ":" FraseAssurda1;
+Battuta2  ::= \ NomeB ^ ":" FraseAssurda2;
+Battuta1b ::= \ NomeA ^ ":" FraseAssurda3;
+
+FraseAssurda1 ::= "Hai presente" Oggetto ^ "?"
+                 | "Ieri ho parlato con" Oggetto ^ "."
+                 | "Non ho chiuso occhio per colpa di" Oggetto ^ ".";
+FraseAssurda2 ::= "No" ^ "." | "Perche' me lo chiedi sempre" ^ "?" | "Non voglio saperlo" ^ ".";
+FraseAssurda3 ::= "Io si'" ^ "." Rivelazione ^ "." | "Lascia perdere" ^ "." | ConclusioneAssurda ^ ".";
+
+Oggetto ::= "il tostapane di nostro cugino" | "un armadio parlante"
+          | "la vicina del terzo piano" | "un vaso Ming falso";
+Rivelazione ::= "Domani devo restituirlo" | "Non era mai successo prima"
+              | "Nessuno ci credera'";
+ConclusioneAssurda ::= "E' cosi' che va il mondo" | "Non e' nel mio destino"
+                      | "Meglio non pensarci";
+
+Finale ::= ++ "[applausi registrati]" | "[silenzio imbarazzato]"
+         | -- "[si sente un clacson in lontananza]";

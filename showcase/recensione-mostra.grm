@@ -1,0 +1,38 @@
+(* RECENSIONE DI MOSTRA D'ARTE — porting.claude.js showcase
+ * Ispirata a: artex.grm (corpus reale Polygen)
+ * Costrutti: := binding, unfold >, capitalize/concat
+ *)
+
+Artista := NomeArtista;
+NomeArtista ::= "Bianca Voltremi" | "Cesare Adornati"
+              | "Nera Ostrowski" | "Fulvio Ghirlandari";
+
+S ::= Titolo ^ "\n\n" Corpo;
+
+Titolo ::= \ "\"" ^ TitoloOpera ^ "\"" "\n" Artista ^ "," Sede ^ "," Anno;
+TitoloOpera ::= "Frammenti di Silenzio" | "L'Assenza Necessaria"
+              | "Superfici Interrotte" | "Geometrie del Dubbio";
+Sede ::= "Galleria Meridiana" ^ "," "Torino"
+       | "Spazio Ortica" ^ "," "Milano"
+       | "Fondazione Cardine" ^ "," "Bologna";
+Anno ::= "2019" | "2021" | "2023";
+
+Corpo ::= \ Frase1 Frase2 Frase3;
+
+Frase1 ::= "Il lavoro di" Artista "indaga" TemaArte ^ ","
+           "attraverso" Medium ^ ".";
+TemaArte ::= "la memoria collettiva" | "il rapporto tra corpo e spazio"
+           | "la dissoluzione dell'identita'" | "il tempo sospeso dell'attesa";
+Medium ::= "installazioni site-specific" | "fotografie di grande formato"
+         | "sculture in materiali poveri" | "video a canale singolo";
+
+Frase2 ::= "Ogni" ElementoOpera "diventa" MetaforaArte ^ ","
+           "restituendo allo spettatore" EffettoOpera ^ ".";
+ElementoOpera ::= "gesto" | "vuoto" | "frammento" | "residuo";
+MetaforaArte ::= "una domanda irrisolta" | "un archivio silenzioso"
+               | "una ferita composta" | "un paesaggio interiore";
+EffettoOpera ::= "un senso di sospensione" | "la possibilita' di un altro sguardo"
+               | "una vertigine misurata" | "una quiete inquieta";
+
+Frase3 ::= "E' una mostra che" >(non si dimentica | resta addosso | continua a interrogare)
+           "molto oltre la sala espositiva" ^ ".";

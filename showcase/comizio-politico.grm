@@ -1,0 +1,34 @@
+(* COMIZIO POLITICO — porting.claude.js showcase
+ * Ispirata a: silvio.grm, girotondi.grm (corpus reale Polygen)
+ * Politico e partito sono di fantasia, nessun riferimento a persone reali.
+ * Costrutti: := binding (stesso nome in apertura e chiusura), (sub)+ ripetizione,
+ *            {} mobile su aggettivi simmetrici, pesi +/--
+ *)
+
+(* Nome e' := (memoizzato) invece di ::=: la stessa persona che apre il
+   comizio deve essere quella che lo chiude, non un'estrazione indipendente. *)
+Nome := NomePolitico;
+NomePolitico ::= "l'Onorevole Bragantini" | "il Senatore Malvezzi"
+               | "il Presidente Ortolani" | "il Candidato Ferramenti";
+
+S ::= Apertura ^ "\n\n" (Promessa ^ "\n")+ Promessa ^ "\n\n" Chiusura;
+
+Apertura ::= \ "Cittadini" ^ "," Nome "prende la parola" ^ ":" "\n"
+             "\"" ^ AprituraDiscorso;
+AprituraDiscorso ::= "Io vi capisco" ^ "."
+                    | "Nessuno ha mai lottato quanto me" ^ "."
+                    | "Questo paese merita di piu'" ^ ".";
+
+Promessa ::= \ "Noi" Verbo Oggetto ^ "," "costi quel che costi" ^ "!";
+Verbo ::= "aboliremo" | "raddoppieremo" | "semplificheremo"
+        | "difenderemo" | "moderneremo";
+Oggetto ::= "le tasse" | "la burocrazia" | "il" {Agg1} {Agg2} "futuro"
+          | "la pensione" | "la dignita' nazionale";
+Agg1 ::= "vero" | "autentico" | "reale";
+Agg2 ::= "concreto" | "tangibile" | "immediato";
+
+Chiusura ::= "\"" "\n\n"
+             \ Nome "saluta tra" ReazioneFolla ^ ".";
+ReazioneFolla ::= ++ "applausi scroscianti"
+                 | "qualche fischio isolato"
+                 | -- "un silenzio imbarazzante";
