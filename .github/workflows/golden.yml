@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/golden.yml'
       - 'tests/grammars/**'
+      - 'tests/cases.json'
 
 permissions:
   contents: write
